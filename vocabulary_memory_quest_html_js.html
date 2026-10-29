@@ -1,0 +1,2699 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vocabulary Memory Quest — แอปจำคำศัพท์ด้วยเกมและระบบทบทวนอัจฉริยะ</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Noto Sans Thai & Noto Sans JP -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    :root {
+      --bg-main: #FAF7F0;
+      --bg-sub: #F4EFE6;
+      --card-bg: #FFFFFF;
+      --primary: #2D5A27;
+      --primary-hover: #22451E;
+      --secondary: #4A7C59;
+      --accent: #E07A5F;
+      --accent-hover: #CC664B;
+      --border-col: #E6DFD3;
+      --text-main: #2C3531;
+    }
+
+    body.theme-sakura {
+      --bg-main: #FFF8FA;
+      --bg-sub: #FCEEF2;
+      --primary: #B83B5E;
+      --primary-hover: #972B49;
+      --secondary: #D96B8A;
+      --accent: #F08A5D;
+      --accent-hover: #D97448;
+      --border-col: #F3D7E0;
+    }
+
+    body.theme-kyoto {
+      --bg-main: #F4F6F9;
+      --bg-sub: #E8EEF5;
+      --primary: #1D3557;
+      --primary-hover: #13243C;
+      --secondary: #457B9D;
+      --accent: #E63946;
+      --accent-hover: #C92A37;
+      --border-col: #D5E0EC;
+    }
+
+    body {
+      font-family: 'Noto Sans Thai', 'Noto Sans JP', sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .font-jp {
+      font-family: 'Noto Sans JP', 'Noto Sans Thai', sans-serif;
+    }
+
+    .bg-theme-main { background-color: var(--bg-main); }
+    .bg-theme-sub { background-color: var(--bg-sub); }
+    .bg-theme-primary { background-color: var(--primary); color: #fff; }
+    .bg-theme-primary:hover { background-color: var(--primary-hover); }
+    .bg-theme-accent { background-color: var(--accent); color: #fff; }
+    .bg-theme-accent:hover { background-color: var(--accent-hover); }
+    .text-theme-primary { color: var(--primary); }
+    .text-theme-accent { color: var(--accent); }
+    .border-theme { border-color: var(--border-col); }
+
+    @keyframes popIn {
+      0% { transform: scale(0.95); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pop {
+      animation: popIn 0.22s ease-out forwards;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-sub); }
+    ::-webkit-scrollbar-thumb { background: #C8BFA8; border-radius: 9999px; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col md:flex-row">
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2 max-w-sm w-full pointer-events-none px-4 md:px-0"></div>
+
+  <!-- Modal Container -->
+  <div id="modal-backdrop" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 hidden items-center justify-center p-4 overflow-y-auto">
+    <div id="modal-content" class="bg-white rounded-3xl max-w-lg w-full p-6 border border-theme shadow-xl animate-pop my-8"></div>
+  </div>
+
+  <!-- Desktop Sidebar -->
+  <aside class="hidden md:flex flex-col w-68 bg-white/95 border-r border-theme p-5 shrink-0 justify-between sticky top-0 h-screen">
+    <div class="space-y-6">
+      <!-- Brand -->
+      <div class="flex items-center justify-between px-2">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-theme-primary flex items-center justify-center font-bold text-xl shadow-sm font-jp">
+            語
+          </div>
+          <div>
+            <h1 class="font-bold text-base leading-tight">Memory Quest</h1>
+            <p class="text-[11px] text-stone-500">ระบบจำคำศัพท์ระยะยาว</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active User Switcher Button -->
+      <button onclick="openUserModal()" class="w-full p-3 rounded-2xl bg-theme-sub border border-theme flex items-center justify-between text-left hover:opacity-90 transition">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-8 h-8 rounded-xl bg-theme-primary flex items-center justify-center font-bold text-xs shrink-0" id="sidebar-user-avatar">U</div>
+          <div class="truncate">
+            <p class="text-xs font-bold truncate" id="sidebar-user-name">ผู้เรียน</p>
+            <p class="text-[10px] text-stone-500">สลับบัญชีผู้ใช้</p>
+          </div>
+        </div>
+        <i data-lucide="chevron-right" class="w-4 h-4 text-stone-400 shrink-0"></i>
+      </button>
+
+      <!-- Navigation Links -->
+      <nav id="desktop-nav" class="space-y-1"></nav>
+    </div>
+
+    <!-- User Gamification Summary -->
+    <div class="bg-theme-sub p-4 rounded-2xl border border-theme space-y-2.5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-bold text-stone-600" id="sidebar-level">Level 1</span>
+        <span class="text-xs font-bold text-amber-700" id="sidebar-coins">🪙 0</span>
+      </div>
+      <div class="w-full bg-stone-200 h-2 rounded-full overflow-hidden">
+        <div id="sidebar-xp-bar" class="bg-theme-primary h-full transition-all duration-300" style="width: 0%"></div>
+      </div>
+      <div class="flex items-center justify-between text-[11px] text-stone-600">
+        <span id="sidebar-xp-text">0 XP</span>
+        <span class="font-bold text-orange-600 flex items-center gap-1" id="sidebar-streak">🔥 0 วัน</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content Wrapper -->
+  <div class="flex-1 flex flex-col min-w-0 pb-20 md:pb-6">
+    <!-- Mobile Top Header -->
+    <header class="md:hidden bg-white/95 backdrop-blur border-b border-theme px-4 py-3 sticky top-0 z-30 flex items-center justify-between">
+      <div class="flex items-center gap-2.5" onclick="openUserModal()">
+        <div class="w-9 h-9 rounded-xl bg-theme-primary flex items-center justify-center font-bold text-base font-jp">語</div>
+        <div>
+          <div class="flex items-center gap-1">
+            <h1 class="font-bold text-sm leading-none" id="mobile-user-name">Memory Quest</h1>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-stone-400"></i>
+          </div>
+          <span class="text-[11px] text-stone-500" id="mobile-status-line">Lv.1 • 🪙 0</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="mobile-streak-badge" class="px-2.5 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-bold">🔥 0</span>
+        <button onclick="switchTab('review')" id="mobile-due-badge" class="px-2.5 py-1 rounded-full bg-theme-accent text-xs font-bold">
+          ทบทวน 0
+        </button>
+      </div>
+    </header>
+
+    <!-- Dynamic View Container -->
+    <main id="app-view" class="flex-1 p-4 md:p-8 max-w-6xl w-full mx-auto"></main>
+  </div>
+
+  <!-- Mobile Bottom Bar -->
+  <nav id="mobile-nav" class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-theme px-1.5 py-1.5 flex justify-around items-center z-40"></nav>
+
+  <!-- ========================================== -->
+  <!-- APPLICATION JAVASCRIPT (VANILLA JS)        -->
+  <!-- ========================================== -->
+  <script>
+    /****************************************************
+     * 1. CONSTANTS, SRS SCHEDULE & STARTER DECK (20 WORDS)
+     ****************************************************/
+    const DB_KEY = 'VMQ_MULTIUSER_DB_V1';
+
+    // 10-Stage Spaced Repetition Schedule in milliseconds
+    const SRS_INTERVALS_MS = {
+      0: 0,                           // Unlearned / New
+      1: 10 * 60 * 1000,              // ขั้นที่ 1: ทดสอบหลังเรียนทันที / 10 นาที
+      2: 1 * 60 * 60 * 1000,          // ขั้นที่ 2: 1 ชั่วโมงหลังเรียน
+      3: 5 * 60 * 60 * 1000,          // ขั้นที่ 3: 5 ชั่วโมงหลังเรียน
+      4: 24 * 60 * 60 * 1000,         // ขั้นที่ 4: 1 วันหลังเรียน
+      5: 3 * 24 * 60 * 60 * 1000,     // ขั้นที่ 5: 3 วันหลังเรียน
+      6: 7 * 24 * 60 * 60 * 1000,     // ขั้นที่ 6: 7 วันหลังเรียน
+      7: 14 * 24 * 60 * 60 * 1000,    // ขั้นที่ 7: 14 วันหลังเรียน (จำได้ดี)
+      8: 30 * 24 * 60 * 60 * 1000,    // ขั้นที่ 8: 30 วันหลังเรียน
+      9: 60 * 24 * 60 * 60 * 1000,    // ขั้นที่ 9: 60 วันหลังเรียน
+      10: 90 * 24 * 60 * 60 * 1000    // ขั้นที่ 10: 90 วันหลังเรียน
+    };
+
+    const SRS_STAGE_NAMES = {
+      0: 'คำใหม่ (ยังไม่เรียน)',
+      1: 'ขั้นที่ 1 (ทันที / 10 นาที)',
+      2: 'ขั้นที่ 2 (1 ชั่วโมง)',
+      3: 'ขั้นที่ 3 (5 ชั่วโมง)',
+      4: 'ขั้นที่ 4 (1 วัน)',
+      5: 'ขั้นที่ 5 (3 วัน)',
+      6: 'ขั้นที่ 6 (7 วัน)',
+      7: 'ขั้นที่ 7 (14 วัน • จำได้ดี)',
+      8: 'ขั้นที่ 8 (30 วัน • จำได้ดี)',
+      9: 'ขั้นที่ 9 (60 วัน • จำได้ดี)',
+      10: 'ขั้นที่ 10 (90 วัน • จำขึ้นใจ)'
+    };
+
+    const CATEGORIES = ['คำทักทาย', 'อาหาร', 'การเดินทาง', 'ชีวิตประจำวัน', 'ธุรกิจ'];
+    const JLPT_LEVELS = ['N5', 'N4', 'N3', 'N2', 'N1'];
+    const WORD_TYPES = ['คำนาม (Noun)', 'คำกริยา (Verb)', 'คำคุณศัพท์ (Adjective)', 'คำกริยาวิเศษณ์ (Adverb)', 'วลี/สำนวน (Phrase)'];
+
+    const THEMES = {
+      matcha: { id: 'matcha', name: 'มัทฉะธรรมชาติ (Matcha Cream)', price: 0, className: '' },
+      sakura: { id: 'sakura', name: 'ซากุระผลิบาน (Sakura Blossom)', price: 100, className: 'theme-sakura' },
+      kyoto:  { id: 'kyoto',  name: 'เกียวโตยามค่ำ (Kyoto Night)', price: 200, className: 'theme-kyoto' }
+    };
+
+    // Starter Deck 20 Words (JLPT N5-N4)
+    const STARTER_DECK_20 = [
+      { word: 'おはよう', kana: 'おはよう', romaji: 'ohayou', meaning: 'สวัสดีตอนเช้า', partOfSpeech: 'วลี/สำนวน (Phrase)', category: 'คำทักทาย', jlpt: 'N5', exampleJa: '先生、おはようございます。', exampleTh: 'สวัสดีตอนเช้าครับ/ค่ะ คุณครู', tokens: ['先生、', 'おはよう', 'ございます。'] },
+      { word: 'ありがとう', kana: 'ありがとう', romaji: 'arigatou', meaning: 'ขอบคุณ', partOfSpeech: 'วลี/สำนวน (Phrase)', category: 'คำทักทาย', jlpt: 'N5', exampleJa: '手伝ってくれてありがとう。', exampleTh: 'ขอบคุณที่ช่วยนะ', tokens: ['手伝って', 'くれて', 'ありがとう。'] },
+      { word: 'すみません', kana: 'すみません', romaji: 'sumimasen', meaning: 'ขอโทษ, ขออนุญาต', partOfSpeech: 'วลี/สำนวน (Phrase)', category: 'คำทักทาย', jlpt: 'N5', exampleJa: 'すみません、駅はどこですか。', exampleTh: 'ขอโทษครับ สถานีรถไฟอยู่ที่ไหน', tokens: ['すみません、', '駅は', 'どこですか。'] },
+      { word: '食べる', kana: 'たべる', romaji: 'taberu', meaning: 'กิน, รับประทาน', partOfSpeech: 'คำกริยา (Verb)', category: 'อาหาร', jlpt: 'N5', exampleJa: '毎朝、パンを食べます。', exampleTh: 'ฉันกินขนมปังทุกเช้า', tokens: ['毎朝、', 'パンを', '食べます。'] },
+      { word: '飲む', kana: 'のむ', romaji: 'nomu', meaning: 'ดื่ม', partOfSpeech: 'คำกริยา (Verb)', category: 'อาหาร', jlpt: 'N5', exampleJa: '水をたくさん飲みます。', exampleTh: 'ดื่มน้ำเยอะๆ', tokens: ['水を', 'たくさん', '飲みます。'] },
+      { word: '美味しい', kana: 'おいしい', romaji: 'oishii', meaning: 'อร่อย', partOfSpeech: 'คำคุณศัพท์ (Adjective)', category: 'อาหาร', jlpt: 'N5', exampleJa: 'このラーメンはとても美味しいです。', exampleTh: 'ราเม็งชามนี้อร่อยมาก', tokens: ['このラーメンは', 'とても', '美味しいです。'] },
+      { word: '朝ご飯', kana: 'あさごはん', romaji: 'asagohan', meaning: 'อาหารเช้า', partOfSpeech: 'คำนาม (Noun)', category: 'อาหาร', jlpt: 'N5', exampleJa: '朝ご飯を食べましたか。', exampleTh: 'กินข้าวเช้าหรือยัง', tokens: ['朝ご飯を', '食べましたか。'] },
+      { word: '電車', kana: 'でんしゃ', romaji: 'densha', meaning: 'รถไฟ', partOfSpeech: 'คำนาม (Noun)', category: 'การเดินทาง', jlpt: 'N5', exampleJa: '電車で会社へ行きます。', exampleTh: 'ไปบริษัทด้วยรถไฟ', tokens: ['電車で', '会社へ', '行きます。'] },
+      { word: '駅', kana: 'えき', romaji: 'eki', meaning: 'สถานีรถไฟ', partOfSpeech: 'คำนาม (Noun)', category: 'การเดินทาง', jlpt: 'N5', exampleJa: '駅の前にカフェがあります。', exampleTh: 'มีคาเฟ่อยู่หน้าสถานีรถไฟ', tokens: ['駅の前に', 'カフェが', 'あります。'] },
+      { word: '空港', kana: 'くうこう', romaji: 'kuukou', meaning: 'สนามบิน', partOfSpeech: 'คำนาม (Noun)', category: 'การเดินทาง', jlpt: 'N5', exampleJa: 'バスで空港へ行きます。', exampleTh: 'ไปสนามบินด้วยรถบัส', tokens: ['バスで', '空港へ', '行きます。'] },
+      { word: '切符', kana: 'きっぷ', romaji: 'kippu', meaning: 'ตั๋วโดยสาร', partOfSpeech: 'คำนาม (Noun)', category: 'การเดินทาง', jlpt: 'N5', exampleJa: '新幹線の切符を買いました。', exampleTh: 'ซื้อตั๋วรถไฟชินคันเซ็นแล้ว', tokens: ['新幹線の', '切符を', '買いました。'] },
+      { word: '勉強', kana: 'べんきょう', romaji: 'benkyou', meaning: 'การเรียน, ศึกษา', partOfSpeech: 'คำนาม (Noun)', category: 'ชีวิตประจำวัน', jlpt: 'N5', exampleJa: '毎日日本語を勉強しています。', exampleTh: 'เรียนภาษาญี่ปุ่นทุกวัน', tokens: ['毎日', '日本語を', '勉強しています。'] },
+      { word: '時間', kana: 'じかん', romaji: 'jikan', meaning: 'เวลา, ชั่วโมง', partOfSpeech: 'คำนาม (Noun)', category: 'ชีวิตประจำวัน', jlpt: 'N5', exampleJa: '今日は時間がありません。', exampleTh: 'วันนี้ไม่มีเวลาเลย', tokens: ['今日は', '時間が', 'ありません。'] },
+      { word: '買い物', kana: 'かいもの', romaji: 'kaimono', meaning: 'การซื้อของ, ช้อปปิ้ง', partOfSpeech: 'คำนาม (Noun)', category: 'ชีวิตประจำวัน', jlpt: 'N5', exampleJa: 'デパートへ買い物に行きます。', exampleTh: 'ไปซื้อของที่ห้างสรรพสินค้า', tokens: ['デパートへ', '買い物に', '行きます。'] },
+      { word: '約束', kana: 'やくそく', romaji: 'yakusoku', meaning: 'สัญญา, นัดหมาย', partOfSpeech: 'คำนาม (Noun)', category: 'ชีวิตประจำวัน', jlpt: 'N4', exampleJa: '友達と約束があります。', exampleTh: 'มีนัดกับเพื่อน', tokens: ['友達と', '約束が', 'あります。'] },
+      { word: '準備', kana: 'じゅんび', romaji: 'junbi', meaning: 'การเตรียมตัว', partOfSpeech: 'คำนาม (Noun)', category: 'ธุรกิจ', jlpt: 'N4', exampleJa: '会議の準備をします。', exampleTh: 'เตรียมการประชุม', tokens: ['会議の', '準備を', 'します。'] },
+      { word: '会議', kana: 'かいぎ', romaji: 'kaigi', meaning: 'การประชุม', partOfSpeech: 'คำนาม (Noun)', category: 'ธุรกิจ', jlpt: 'N4', exampleJa: '午後から大切な会議があります。', exampleTh: 'มีประชุมสำคัญตั้งแต่ช่วงบ่าย', tokens: ['午後から', '大切な', '会議があります。'] },
+      { word: '連絡', kana: 'れんらく', romaji: 'renraku', meaning: 'การติดต่อ, แจ้งข่าว', partOfSpeech: 'คำนาม (Noun)', category: 'ธุรกิจ', jlpt: 'N4', exampleJa: '後で電話で連絡します。', exampleTh: 'จะติดต่อกลับทางโทรศัพท์ภายหลัง', tokens: ['後で', '電話で', '連絡します。'] },
+      { word: '確認', kana: 'かくにん', romaji: 'kakunin', meaning: 'การตรวจสอบ, ยืนยัน', partOfSpeech: 'คำนาม (Noun)', category: 'ธุรกิจ', jlpt: 'N3', exampleJa: 'メールの内容を確認してください。', exampleTh: 'กรุณาตรวจสอบเนื้อหาในอีเมล', tokens: ['メールの', '内容を', '確認してください。'] },
+      { word: '経験', kana: 'けいけん', romaji: 'keiken', meaning: 'ประสบการณ์', partOfSpeech: 'คำนาม (Noun)', category: 'ธุรกิจ', jlpt: 'N4', exampleJa: '日本で働く経験があります。', exampleTh: 'มีประสบการณ์ทำงานที่ประเทศญี่ปุ่น', tokens: ['日本で', '働く', '経験があります。'] }
+    ];
+
+    const GAMES_LIST = [
+      { id: 'flashcard', num: 1, title: 'Flashcard Challenge', desc: 'ทายคำศัพท์หรือความหมายก่อนเปิดเฉลยแล้วประเมินความจำ', icon: 'layers' },
+      { id: 'matching', num: 2, title: 'Matching Pairs', desc: 'จับคู่คำศัพท์ภาษาญี่ปุ่นกับความหมายภาษาไทยแข่งกับเวลา', icon: 'git-compare' },
+      { id: 'memory_flip', num: 3, title: 'Memory Flip', desc: 'พลิกแผ่นป้ายจำตำแหน่งเพื่อจับคู่คำศัพท์กับความหมาย', icon: 'grid' },
+      { id: 'multiple_choice', num: 4, title: 'Multiple Choice', desc: 'เลือกความหมายที่ถูกต้องจาก 4 ตัวเลือกในคลังคำศัพท์', icon: 'check-square' },
+      { id: 'typing', num: 5, title: 'Word Typing', desc: 'พิมพ์คำศัพท์ญี่ปุ่น ฮิรางานะ หรือโรมาจิให้ถูกต้อง', icon: 'keyboard' },
+      { id: 'listening', num: 6, title: 'Listening Quiz', desc: 'ฟังเสียงอ่านภาษาญี่ปุ่นแล้วเลือกคำตอบที่ถูกต้อง', icon: 'headphones' },
+      { id: 'speed_round', num: 7, title: 'Speed Round (60s)', desc: 'ตอบคำถามเรียกคืนความจำอย่างรวดเร็วใน 60 วินาที', icon: 'zap' },
+      { id: 'sentence_builder', num: 8, title: 'Sentence Builder', desc: 'เรียงคำให้เป็นประโยคภาษาญี่ปุ่นตามคำแปลภาษาไทย', icon: 'align-left' },
+      { id: 'fill_blank', num: 9, title: 'Fill in the Blank', desc: 'เติมคำศัพท์ที่หายไปในประโยคตัวอย่างให้ถูกต้อง', icon: 'edit-3' },
+      { id: 'boss_battle', num: 10, title: 'Boss Battle', desc: 'ต่อสู้กับบอสด้วยคำศัพท์รวมหลายหมวดและคำที่ผิดบ่อย!', icon: 'swords' }
+    ];
+
+    const ACHIEVEMENTS_CONFIG = [
+      { id: 'ach_first', title: 'ก้าวแรกแห่งการจำ', desc: 'ทบทวนหรือเรียนคำศัพท์คำแรกสำเร็จ', icon: '🌱', check: m => m.totalReviews >= 1 },
+      { id: 'ach_vocab10', title: 'นักสะสมคำศัพท์ (10 คำ)', desc: 'มีคำศัพท์ในคลังครบ 10 คำขึ้นไป', icon: '📚', check: m => m.totalVocab >= 10 },
+      { id: 'ach_vocab50', title: 'คลังปัญญา (50 คำ)', desc: 'มีคำศัพท์ในคลังครบ 50 คำขึ้นไป', icon: '🏛️', check: m => m.totalVocab >= 50 },
+      { id: 'ach_master5', title: 'ความจำระยะยาว', desc: 'มีคำศัพท์ระดับจำได้ดี (ขั้น 7+) ครบ 5 คำ', icon: '🧠', check: m => m.masteredCount >= 5 },
+      { id: 'ach_streak3', title: 'วินัยต่อเนื่อง 3 วัน', desc: 'เรียนต่อเนื่องกันครบ 3 วัน', icon: '🔥', check: m => m.streak >= 3 },
+      { id: 'ach_streak7', title: 'นักรบ 7 วัน', desc: 'เรียนต่อเนื่องกันครบ 7 วัน', icon: '👑', check: m => m.streak >= 7 },
+      { id: 'ach_boss', title: 'ผู้พิชิตบอสแห่งความลืม', desc: 'เอาชนะโหมด Boss Battle สำเร็จ', icon: '🐉', check: m => m.bossDefeated >= 1 }
+    ];
+
+    /****************************************************
+     * 2. DATABASE ENGINE (8 TABLES + MULTI-USER)
+     ****************************************************/
+    let db = null;
+    let activeTab = 'dashboard';
+    let speechState = { supported: false, jaVoice: null };
+
+    // Review Session & Game Runtime State
+    let srsSession = {
+      active: false,
+      mode: 'due',
+      queue: [],
+      index: 0,
+      revealed: false,
+      results: [],
+      lastActionHash: '',
+      filterCat: 'ALL',
+      filterJLPT: 'ALL'
+    };
+
+    let vocabFilter = {
+      search: '',
+      category: 'ALL',
+      jlpt: 'ALL',
+      status: 'ALL'
+    };
+
+    let gameRuntime = {
+      activeGameId: null,
+      summary: null,
+      pool: [],
+      qIndex: 0,
+      score: 0,
+      mistakes: [],
+      startTime: 0,
+      timerId: null,
+      timeLeft: 60,
+      revealed: false,
+      feedback: null,
+      bossHP: 100,
+      playerHP: 100,
+      builtTokens: [],
+      matchLeft: [],
+      matchRight: [],
+      selectedLeftId: null,
+      matchedIds: [],
+      flipDeck: [],
+      flippedIdx: [],
+      solvedFlipIds: []
+    };
+
+    function createEmptyDatabase() {
+      const defaultUid = 'user_' + Date.now();
+      return {
+        currentUserId: defaultUid,
+        // Table 1: Users
+        Users: [
+          {
+            id: defaultUid,
+            username: 'ผู้เรียนหลัก (Default)',
+            timezone: 'Asia/Bangkok',
+            xp: 0,
+            coins: 50,
+            streak: 0,
+            lastStudyDate: '',
+            bossDefeated: 0,
+            createdAt: Date.now()
+          }
+        ],
+        // Table 2: Vocabulary (Core details)
+        Vocabulary: [],
+        // Table 3: UserVocabulary (SRS progress per user & word)
+        UserVocabulary: [],
+        // Table 4: ReviewHistory
+        ReviewHistory: [],
+        // Table 5: GameSessions
+        GameSessions: [],
+        // Table 6: Achievements
+        Achievements: [],
+        // Table 7: DailyGoals
+        DailyGoals: [],
+        // Table 8: UserSettings
+        UserSettings: [
+          {
+            userId: defaultUid,
+            dailyGoal: 15,
+            batchSize: 10,
+            promptMode: 'word', // 'word' or 'meaning'
+            theme: 'matcha',
+            unlockedThemes: ['matcha'],
+            notificationsEnabled: false
+          }
+        ]
+      };
+    }
+
+    function loadDatabase() {
+      try {
+        const raw = localStorage.getItem(DB_KEY);
+        if (raw) {
+          db = JSON.parse(raw);
+          if (!db.Users || !db.Users.length) db = createEmptyDatabase();
+        } else {
+          db = createEmptyDatabase();
+          saveDatabase();
+        }
+      } catch (e) {
+        console.error('Database load error:', e);
+        db = createEmptyDatabase();
+      }
+      applyCurrentUserTheme();
+    }
+
+    function saveDatabase() {
+      try {
+        localStorage.setItem(DB_KEY, JSON.stringify(db));
+      } catch (e) {
+        showToast('พื้นที่จัดเก็บข้อมูลเต็ม กรุณาส่งออกข้อมูลสำรอง', 'error');
+      }
+    }
+
+    function getCurrentUser() {
+      return db.Users.find(u => u.id === db.currentUserId) || db.Users[0];
+    }
+
+    function getCurrentUserSettings() {
+      const uid = getCurrentUser().id;
+      let s = db.UserSettings.find(st => st.userId === uid);
+      if (!s) {
+        s = {
+          userId: uid,
+          dailyGoal: 15,
+          batchSize: 10,
+          promptMode: 'word',
+          theme: 'matcha',
+          unlockedThemes: ['matcha'],
+          notificationsEnabled: false
+        };
+        db.UserSettings.push(s);
+        saveDatabase();
+      }
+      return s;
+    }
+
+    // Joined Vocabulary + UserVocabulary for Current User
+    function getUserJoinedVocabulary() {
+      const uid = getCurrentUser().id;
+      const vocabItems = db.Vocabulary.filter(v => v.ownerId === uid);
+      const progressMap = {};
+      db.UserVocabulary.filter(uv => uv.userId === uid).forEach(uv => {
+        progressMap[uv.vocabId] = uv;
+      });
+
+      return vocabItems.map(v => {
+        const prog = progressMap[v.id] || {
+          id: 'uv_' + v.id,
+          userId: uid,
+          vocabId: v.id,
+          srsStage: 0,
+          nextReview: null,
+          lastReviewed: null,
+          correctCount: 0,
+          wrongCount: 0,
+          consecutiveCorrect: 0,
+          urgentReview: false
+        };
+        return {
+          ...v,
+          srsStage: prog.srsStage || 0,
+          nextReview: prog.nextReview || null,
+          lastReviewed: prog.lastReviewed || null,
+          correctCount: prog.correctCount || 0,
+          wrongCount: prog.wrongCount || 0,
+          consecutiveCorrect: prog.consecutiveCorrect || 0,
+          urgentReview: Boolean(prog.urgentReview)
+        };
+      });
+    }
+
+    /****************************************************
+     * 3. TIMEZONE (Asia/Bangkok) & SPEECH API HELPERS
+     ****************************************************/
+    function getBangkokDateStr(ts = Date.now()) {
+      try {
+        return new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Asia/Bangkok',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).format(new Date(ts));
+      } catch (e) {
+        return new Date(ts).toISOString().split('T')[0];
+      }
+    }
+
+    function formatBangkokDateTime(ts) {
+      if (!ts) return 'ยังไม่ได้กำหนด';
+      try {
+        return new Intl.DateTimeFormat('th-TH', {
+          timeZone: 'Asia/Bangkok',
+          day: 'numeric',
+          month: 'short',
+          hour: '2-digit',
+          minute: '2-digit'
+        }).format(new Date(ts));
+      } catch (e) {
+        return new Date(ts).toLocaleString('th-TH');
+      }
+    }
+
+    function initSpeechSystem() {
+      if ('speechSynthesis' in window) {
+        speechState.supported = true;
+        const loadVoices = () => {
+          const voices = window.speechSynthesis.getVoices();
+          const ja = voices.find(v => v.lang && (v.lang.includes('ja') || v.lang.includes('JP')));
+          speechState.jaVoice = ja || null;
+        };
+        loadVoices();
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+      }
+    }
+
+    function speakText(text) {
+      if (!speechState.supported) {
+        showToast('อุปกรณ์หรือเบราว์เซอร์นี้ไม่รองรับการสังเคราะห์เสียงอ่าน', 'error');
+        return;
+      }
+      try {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'ja-JP';
+        u.rate = 0.9;
+        if (speechState.jaVoice) u.voice = speechState.jaVoice;
+        window.speechSynthesis.speak(u);
+      } catch (e) {
+        showToast('เกิดข้อผิดพลาดในการเล่นเสียงอ่าน', 'error');
+      }
+    }
+
+    function showToast(msg, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const el = document.createElement('div');
+      const colors = type === 'error'
+        ? 'bg-red-50 border-red-300 text-red-900'
+        : type === 'info'
+        ? 'bg-amber-50 border-amber-300 text-amber-900'
+        : 'bg-emerald-50 border-emerald-300 text-emerald-900';
+
+      el.className = `pointer-events-auto px-4 py-3 rounded-2xl shadow-lg border ${colors} flex items-center justify-between gap-3 animate-pop text-xs font-semibold`;
+      el.innerHTML = `<span>${msg}</span>`;
+      container.appendChild(el);
+      setTimeout(() => {
+        el.remove();
+      }, 3400);
+    }
+
+    function applyCurrentUserTheme() {
+      const settings = getCurrentUserSettings();
+      const themeObj = THEMES[settings.theme] || THEMES.matcha;
+      document.body.className = `min-h-screen flex flex-col md:flex-row ${themeObj.className}`;
+    }
+
+    /****************************************************
+     * 4. SPACED REPETITION (SRS 10 STAGES) & RECORDING
+     ****************************************************/
+    function computeNextSRS(currentStage, rating, consecutiveCorrect, wasMastered) {
+      const now = Date.now();
+      let nextStage = currentStage;
+      let nextIntervalMs = 0;
+      let urgentReview = false;
+      let newConsecutive = consecutiveCorrect || 0;
+
+      if (rating === 'again') {
+        // ตอบผิดหรือจำไม่ได้: ลดระดับความจำ และกำหนดเวลาทบทวนใหม่ให้เร็วขึ้น
+        nextStage = Math.max(1, currentStage - 2);
+        nextIntervalMs = 5 * 60 * 1000; // 5 นาที (เร่งด่วน)
+        newConsecutive = 0;
+        if (wasMastered || currentStage >= 5) {
+          urgentReview = true;
+        }
+      } else if (rating === 'hard') {
+        // ตอบถูกแต่ลังเล: เพิ่มช่วงเวลาเพียงเล็กน้อย
+        nextStage = currentStage === 0 ? 1 : currentStage;
+        const base = SRS_INTERVALS_MS[nextStage] || (30 * 60 * 1000);
+        nextIntervalMs = Math.round(base * 0.6);
+        newConsecutive = 0;
+      } else if (rating === 'good') {
+        // ตอบถูกและมั่นใจ: ขยายช่วงเวลาตามระดับความจำ
+        newConsecutive += 1;
+        const bonusStep = newConsecutive >= 4 ? 2 : 1;
+        nextStage = currentStage === 0 ? 2 : Math.min(10, currentStage + bonusStep);
+        nextIntervalMs = SRS_INTERVALS_MS[nextStage];
+      } else if (rating === 'easy') {
+        // จำได้ง่ายมาก: ข้ามระดับเร็วขึ้น
+        newConsecutive += 1;
+        nextStage = currentStage === 0 ? 3 : Math.min(10, currentStage + 2);
+        nextIntervalMs = Math.round(SRS_INTERVALS_MS[nextStage] * 1.15);
+      }
+
+      return {
+        srsStage: nextStage,
+        nextReview: now + nextIntervalMs,
+        consecutiveCorrect: newConsecutive,
+        urgentReview
+      };
+    }
+
+    // Record review & update XP/Streak/Tables (with anti-farming guard)
+    function recordReviewResult(vocabId, rating, source = 'srs', timeSpentSec = 6) {
+      const user = getCurrentUser();
+      const now = Date.now();
+      const todayStr = getBangkokDateStr(now);
+      const yesterdayStr = getBangkokDateStr(now - 86400000);
+
+      // Anti-repeat XP farming check (prevent rapid duplicate submission of exact same word within 3 seconds)
+      const actionKey = `${vocabId}_${rating}_${Math.floor(now / 3000)}`;
+      if (srsSession.lastActionHash === actionKey) return;
+      srsSession.lastActionHash = actionKey;
+
+      let uv = db.UserVocabulary.find(item => item.userId === user.id && item.vocabId === vocabId);
+      if (!uv) {
+        uv = {
+          id: 'uv_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+          userId: user.id,
+          vocabId,
+          srsStage: 0,
+          nextReview: now,
+          lastReviewed: null,
+          correctCount: 0,
+          wrongCount: 0,
+          consecutiveCorrect: 0,
+          urgentReview: false
+        };
+        db.UserVocabulary.push(uv);
+      }
+
+      const prevStage = uv.srsStage || 0;
+      const wasMastered = prevStage >= 7;
+      const isCorrect = rating !== 'again';
+
+      const nextSRS = computeNextSRS(prevStage, rating, uv.consecutiveCorrect, wasMastered);
+      uv.srsStage = nextSRS.srsStage;
+      uv.nextReview = nextSRS.nextReview;
+      uv.lastReviewed = now;
+      uv.consecutiveCorrect = nextSRS.consecutiveCorrect;
+      uv.urgentReview = nextSRS.urgentReview;
+      if (isCorrect) uv.correctCount = (uv.correctCount || 0) + 1;
+      else uv.wrongCount = (uv.wrongCount || 0) + 1;
+
+      const vocabObj = db.Vocabulary.find(v => v.id === vocabId);
+
+      // Insert into ReviewHistory
+      db.ReviewHistory.push({
+        id: 'rev_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        userId: user.id,
+        vocabId,
+        word: vocabObj ? vocabObj.word : '',
+        category: vocabObj ? vocabObj.category : 'ทั่วไป',
+        rating,
+        isCorrect,
+        prevStage,
+        newStage: nextSRS.srsStage,
+        source,
+        timeSpentSec,
+        timestamp: now,
+        dateStr: todayStr
+      });
+
+      // Update DailyGoals table
+      let daily = db.DailyGoals.find(d => d.userId === user.id && d.dateStr === todayStr);
+      const settings = getCurrentUserSettings();
+      if (!daily) {
+        daily = {
+          id: 'dg_' + user.id + '_' + todayStr,
+          userId: user.id,
+          dateStr: todayStr,
+          targetCount: settings.dailyGoal || 15,
+          completedCount: 1
+        };
+        db.DailyGoals.push(daily);
+      } else {
+        daily.completedCount += 1;
+      }
+
+      // Update User XP, Coins & Streak
+      const xpEarned = rating === 'easy' ? 12 : rating === 'good' ? 10 : rating === 'hard' ? 6 : 2;
+      const coinEarned = isCorrect ? 2 : 0;
+      user.xp = (user.xp || 0) + xpEarned;
+      user.coins = (user.coins || 0) + coinEarned;
+
+      if (user.lastStudyDate !== todayStr) {
+        if (user.lastStudyDate === yesterdayStr) {
+          user.streak = (user.streak || 0) + 1;
+        } else {
+          user.streak = 1;
+        }
+        user.lastStudyDate = todayStr;
+      }
+
+      saveDatabase();
+      checkAndUnlockAchievements();
+    }
+
+    function checkAndUnlockAchievements() {
+      const user = getCurrentUser();
+      const metrics = calculateMetrics();
+      let newlyUnlocked = false;
+
+      ACHIEVEMENTS_CONFIG.forEach(ach => {
+        const exists = db.Achievements.some(a => a.userId === user.id && a.achievementId === ach.id);
+        if (!exists && ach.check(metrics)) {
+          db.Achievements.push({
+            id: 'ua_' + Date.now() + '_' + ach.id,
+            userId: user.id,
+            achievementId: ach.id,
+            unlockedAt: Date.now()
+          });
+          user.xp = (user.xp || 0) + 25;
+          user.coins = (user.coins || 0) + 15;
+          showToast(`🏆 ปลดล็อกความสำเร็จ: "${ach.title}" (+25 XP, +15 เหรียญ)`);
+          newlyUnlocked = true;
+        }
+      });
+
+      if (newlyUnlocked) saveDatabase();
+    }
+
+    /****************************************************
+     * 5. REAL-TIME METRICS COMPUTATION
+     ****************************************************/
+    function calculateMetrics() {
+      const user = getCurrentUser();
+      const settings = getCurrentUserSettings();
+      const vocabList = getUserJoinedVocabulary();
+      const userReviews = db.ReviewHistory.filter(r => r.userId === user.id);
+      const userGames = db.GameSessions.filter(g => g.userId === user.id);
+      const now = Date.now();
+      const todayStr = getBangkokDateStr(now);
+      const oneDayMs = 24 * 60 * 60 * 1000;
+
+      let newCount = 0;
+      let learningCount = 0;
+      let masteredCount = 0; // Stage >= 7
+      let dueList = [];
+      let overdueList = [];
+
+      vocabList.forEach(v => {
+        const st = v.srsStage || 0;
+        if (st === 0) newCount++;
+        else if (st >= 7) masteredCount++;
+        else learningCount++;
+
+        if (st > 0 && v.nextReview && v.nextReview <= now) {
+          dueList.push(v);
+          if (now - v.nextReview >= oneDayMs || v.urgentReview) {
+            overdueList.push(v);
+          }
+        }
+      });
+
+      // Sort Due Queue: Urgent & Overdue & High wrongCount first
+      dueList.sort((a, b) => {
+        const aScore = (a.urgentReview ? 1e9 : 0) + (now - (a.nextReview || now)) + ((a.wrongCount || 0) * 3600000);
+        const bScore = (b.urgentReview ? 1e9 : 0) + (now - (b.nextReview || now)) + ((b.wrongCount || 0) * 3600000);
+        return bScore - aScore;
+      });
+
+      const totalReviews = userReviews.length;
+      const correctReviews = userReviews.filter(r => r.isCorrect).length;
+      const accuracy = totalReviews > 0 ? Math.round((correctReviews / totalReviews) * 100) : 0;
+      const todayReviews = userReviews.filter(r => r.dateStr === todayStr).length;
+
+      const level = Math.floor((user.xp || 0) / 100) + 1;
+      const xpInLevel = (user.xp || 0) % 100;
+
+      return {
+        user,
+        settings,
+        vocabList,
+        userReviews,
+        userGames,
+        totalVocab: vocabList.length,
+        newCount,
+        learningCount,
+        masteredCount,
+        dueList,
+        overdueList,
+        totalReviews,
+        accuracy,
+        todayReviews,
+        level,
+        xpInLevel,
+        streak: user.streak || 0,
+        bossDefeated: user.bossDefeated || 0
+      };
+    }
+
+    /****************************************************
+     * 6. NAVIGATION & SHELL RENDERING
+     ****************************************************/
+    function switchTab(tabId) {
+      if (gameRuntime.timerId) {
+        clearInterval(gameRuntime.timerId);
+        gameRuntime.timerId = null;
+      }
+      activeTab = tabId;
+      renderApp();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderNavigation(metrics) {
+      const dueBadge = metrics.dueList.length;
+      const navItems = [
+        { id: 'dashboard', label: 'หน้าหลัก (Dashboard)', short: 'หน้าหลัก', icon: 'compass' },
+        { id: 'review', label: 'ทบทวนคำศัพท์ (SRS)', short: 'ทบทวน', icon: 'brain', badge: dueBadge },
+        { id: 'vocab', label: 'คลังคำศัพท์ (Vocabulary)', short: 'คำศัพท์', icon: 'book-open' },
+        { id: 'games', label: 'เกมฝึกสมอง (10 Games)', short: '10 เกม', icon: 'gamepad-2' },
+        { id: 'quest', label: 'แผนที่ & ภารกิจ (Quest)', short: 'ภารกิจ', icon: 'trophy' },
+        { id: 'stats', label: 'สถิติเชิงลึก (Analytics)', short: 'สถิติ', icon: 'bar-chart-3' },
+        { id: 'settings', label: 'ตั้งค่า & สำรองข้อมูล', short: 'ตั้งค่า', icon: 'settings' }
+      ];
+
+      // Desktop Nav
+      const dNav = document.getElementById('desktop-nav');
+      dNav.innerHTML = navItems.map(item => {
+        const isActive = activeTab === item.id;
+        return `
+          <button onclick="switchTab('${item.id}')" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+            isActive ? 'bg-theme-primary shadow-xs' : 'text-stone-700 hover:bg-stone-100'
+          }">
+            <div class="flex items-center gap-3">
+              <i data-lucide="${item.icon}" class="w-4 h-4"></i>
+              <span>${item.label}</span>
+            </div>
+            ${item.badge > 0 ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${isActive ? 'bg-white text-stone-900' : 'bg-theme-accent'}">${item.badge}</span>` : ''}
+          </button>
+        `;
+      }).join('');
+
+      // Mobile Nav (first 6 items)
+      const mNav = document.getElementById('mobile-nav');
+      mNav.innerHTML = navItems.slice(0, 6).map(item => {
+        const isActive = activeTab === item.id;
+        return `
+          <button onclick="switchTab('${item.id}')" class="relative flex flex-col items-center justify-center py-1 px-2 rounded-xl ${
+            isActive ? 'text-theme-primary font-bold' : 'text-stone-500'
+          }">
+            <i data-lucide="${item.icon}" class="w-5 h-5"></i>
+            <span class="text-[10px] mt-0.5">${item.short}</span>
+            ${item.badge > 0 ? `<span class="absolute top-0 right-1 px-1.5 rounded-full bg-theme-accent text-[9px] font-bold">${item.badge > 99 ? '99+' : item.badge}</span>` : ''}
+          </button>
+        `;
+      }).join('');
+
+      // Sidebar & Mobile Header User Info
+      document.getElementById('sidebar-user-avatar').textContent = (metrics.user.username || 'U').charAt(0).toUpperCase();
+      document.getElementById('sidebar-user-name').textContent = metrics.user.username;
+      document.getElementById('sidebar-level').textContent = `Level ${metrics.level}`;
+      document.getElementById('sidebar-coins').textContent = `🪙 ${metrics.user.coins || 0}`;
+      document.getElementById('sidebar-xp-bar').style.width = `${metrics.xpInLevel}%`;
+      document.getElementById('sidebar-xp-text').textContent = `${metrics.user.xp || 0} XP`;
+      document.getElementById('sidebar-streak').textContent = `🔥 ${metrics.streak} วัน`;
+
+      document.getElementById('mobile-user-name').textContent = metrics.user.username;
+      document.getElementById('mobile-status-line').textContent = `Lv.${metrics.level} • 🪙 ${metrics.user.coins || 0}`;
+      document.getElementById('mobile-streak-badge').textContent = `🔥 ${metrics.streak}`;
+      document.getElementById('mobile-due-badge').textContent = `ทบทวน ${metrics.dueList.length}`;
+    }
+
+    function renderApp() {
+      const metrics = calculateMetrics();
+      renderNavigation(metrics);
+
+      const container = document.getElementById('app-view');
+      if (activeTab === 'dashboard') renderDashboardView(container, metrics);
+      else if (activeTab === 'vocab') renderVocabularyView(container, metrics);
+      else if (activeTab === 'review') renderReviewView(container, metrics);
+      else if (activeTab === 'games') renderGamesView(container, metrics);
+      else if (activeTab === 'quest') renderQuestView(container, metrics);
+      else if (activeTab === 'stats') renderStatsView(container, metrics);
+      else if (activeTab === 'settings') renderSettingsView(container, metrics);
+
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    /****************************************************
+     * 7. VIEW 1: DASHBOARD
+     ****************************************************/
+    function renderDashboardView(container, m) {
+      const goalTarget = m.settings.dailyGoal || 15;
+      const goalPct = Math.min(100, Math.round((m.todayReviews / goalTarget) * 100));
+
+      // 14-Day Activity Calendar in Asia/Bangkok
+      const countsByDate = {};
+      m.userReviews.forEach(r => {
+        if (r.dateStr) countsByDate[r.dateStr] = (countsByDate[r.dateStr] || 0) + 1;
+      });
+      const calendarDays = [];
+      const now = Date.now();
+      for (let i = 13; i >= 0; i--) {
+        const ts = now - i * 86400000;
+        const dStr = getBangkokDateStr(ts);
+        const label = new Intl.DateTimeFormat('th-TH', { timeZone: 'Asia/Bangkok', day: 'numeric', month: 'short' }).format(new Date(ts));
+        calendarDays.push({ dStr, label, count: countsByDate[dStr] || 0 });
+      }
+
+      container.innerHTML = `
+        <div class="space-y-6 animate-pop">
+          <!-- Hero Card -->
+          <div class="bg-white rounded-3xl p-6 border border-theme shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div class="space-y-2">
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-theme-sub text-xs font-bold text-theme-primary">
+                <span>🌿 Minimal Japanese • Active Recall & SRS 10 ขั้น</span>
+              </div>
+              <h2 class="text-2xl md:text-3xl font-bold">สวัสดีคุณ ${escapeHtml(m.user.username)}!</h2>
+              <p class="text-sm text-stone-600">
+                วันนี้ทบทวนแล้ว <span class="font-bold text-theme-primary">${m.todayReviews}</span> คำ 
+                • ต้องทบทวนวันนี้ <span class="font-bold text-theme-accent">${m.dueList.length}</span> คำ 
+                (เลยกำหนด <span class="font-bold text-red-600">${m.overdueList.length}</span> คำ)
+              </p>
+            </div>
+            <div class="flex flex-wrap gap-2.5">
+              <button onclick="quickStartSRS('new')" class="px-5 py-3 rounded-2xl font-bold text-xs md:text-sm bg-theme-primary flex items-center gap-2 shadow-xs">
+                <i data-lucide="play" class="w-4 h-4"></i>
+                <span>เริ่มเรียนคำใหม่ (${m.newCount})</span>
+              </button>
+              <button onclick="quickStartSRS('due')" class="px-5 py-3 rounded-2xl font-bold text-xs md:text-sm bg-theme-accent flex items-center gap-2 shadow-xs">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                <span>ทบทวนคำศัพท์วันนี้ (${m.dueList.length})</span>
+              </button>
+              <button onclick="switchTab('games')" class="px-5 py-3 rounded-2xl font-bold text-xs md:text-sm bg-theme-sub hover:opacity-80 text-stone-800 flex items-center gap-2 border border-theme">
+                <i data-lucide="gamepad-2" class="w-4 h-4 text-theme-primary"></i>
+                <span>เล่นเกม</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Empty State Starter Deck Prompt -->
+          ${m.totalVocab === 0 ? `
+            <div class="bg-amber-50/90 border-2 border-dashed border-amber-300 rounded-3xl p-6 md:p-8 text-center space-y-4">
+              <div class="w-14 h-14 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center mx-auto text-2xl">📦</div>
+              <div class="max-w-lg mx-auto space-y-1">
+                <h3 class="text-lg font-bold text-stone-800">ยินดีต้อนรับ! คลังคำศัพท์ของคุณยังว่างอยู่</h3>
+                <p class="text-xs md:text-sm text-stone-600">
+                  คุณสามารถกดโหลด <strong>ชุดคำศัพท์เริ่มต้น 20 คำ (JLPT N5–N4)</strong> เพื่อเริ่มทดสอบระบบทบทวนอัจฉริยะและเกมทั้ง 10 รูปแบบได้ทันที หรือเพิ่มคำศัพท์ของคุณเอง
+                </p>
+              </div>
+              <div class="flex flex-wrap justify-center gap-3 pt-1">
+                <button onclick="loadStarterDeck20()" class="px-6 py-3 rounded-2xl font-bold text-xs md:text-sm bg-theme-primary shadow-xs">
+                  ✨ โหลดชุดคำศัพท์เริ่มต้น (20 คำ JLPT N5-N4)
+                </button>
+                <button onclick="switchTab('vocab'); openVocabModal();" class="px-5 py-3 rounded-2xl font-bold text-xs md:text-sm bg-white border border-stone-300 text-stone-700">
+                  + เพิ่มคำศัพท์เอง
+                </button>
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- 9 Real-Time Stat Cards -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+            <div class="bg-white p-4 rounded-2xl border border-theme shadow-2xs">
+              <span class="text-xs text-stone-500">คำศัพท์ทั้งหมด</span>
+              <p class="text-2xl font-bold mt-1">${m.totalVocab}</p>
+              <span class="text-[11px] text-stone-400">คำใหม่ ${m.newCount} คำ</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-theme shadow-2xs">
+              <span class="text-xs text-stone-500">คำศัพท์ที่กำลังเรียน</span>
+              <p class="text-2xl font-bold text-amber-600 mt-1">${m.learningCount}</p>
+              <span class="text-[11px] text-stone-400">SRS ขั้นที่ 1–6</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-theme shadow-2xs">
+              <span class="text-xs text-stone-500">คำศัพท์ที่จำได้ดี</span>
+              <p class="text-2xl font-bold text-theme-primary mt-1">${m.masteredCount}</p>
+              <span class="text-[11px] text-stone-400">SRS ขั้นที่ 7–10</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-theme shadow-2xs">
+              <span class="text-xs text-stone-500">ต้องทบทวนวันนี้</span>
+              <p class="text-2xl font-bold text-theme-accent mt-1">${m.dueList.length}</p>
+              <span class="text-[11px] text-red-600 font-semibold">เลยกำหนด ${m.overdueList.length} คำ</span>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-theme shadow-2xs">
+              <span class="text-xs text-stone-500">ความแม่นยำจริง</span>
+              <p class="text-2xl font-bold text-emerald-700 mt-1">${m.accuracy}%</p>
+              <span class="text-[11px] text-stone-400">จาก ${m.totalReviews} ครั้ง</span>
+            </div>
+          </div>
+
+          <!-- Secondary Row: Streak, XP/Level, Daily Goal -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-white p-5 rounded-3xl border border-theme flex items-center justify-between">
+              <div>
+                <span class="text-xs text-stone-500">เรียนต่อเนื่อง (Streak)</span>
+                <p class="text-2xl font-bold text-orange-600 mt-0.5">🔥 ${m.streak} วัน</p>
+                <span class="text-[11px] text-stone-400">เวลาไทย Asia/Bangkok</span>
+              </div>
+              <button onclick="switchTab('settings')" class="text-xs font-semibold text-theme-primary underline">ตั้งค่า</button>
+            </div>
+
+            <div class="bg-white p-5 rounded-3xl border border-theme flex items-center justify-between">
+              <div>
+                <span class="text-xs text-stone-500">ระดับผู้เรียน & เหรียญสะสม</span>
+                <p class="text-2xl font-bold text-indigo-800 mt-0.5">Lv.${m.level} <span class="text-sm font-normal text-stone-500">(${m.user.xp || 0} XP)</span></p>
+                <span class="text-[11px] text-amber-700 font-bold">🪙 ${m.user.coins || 0} เหรียญสำหรับแลกธีม</span>
+              </div>
+              <button onclick="switchTab('quest')" class="text-xs font-semibold text-theme-primary underline">ร้านค้าธีม</button>
+            </div>
+
+            <div class="bg-white p-5 rounded-3xl border border-theme space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-stone-500">เป้าหมายรายวัน</span>
+                <span class="text-xs font-bold text-theme-primary">${m.todayReviews} / ${goalTarget} คำ (${goalPct}%)</span>
+              </div>
+              <div class="w-full bg-stone-200 h-2.5 rounded-full overflow-hidden">
+                <div class="bg-theme-primary h-full transition-all duration-300" style="width: ${goalPct}%"></div>
+              </div>
+              <p class="text-[11px] text-stone-400">${goalPct >= 100 ? '🎉 บรรลุเป้าหมายรายวันเรียบร้อยแล้ว!' : 'ฝึกฝนต่ออีกนิดเพื่อพิชิตเป้าหมายวันนี้'}</p>
+            </div>
+          </div>
+
+          <!-- Calendar & Due Queue Preview -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- 14-Day Heatmap Calendar -->
+            <div class="lg:col-span-2 bg-white rounded-3xl p-6 border border-theme space-y-4">
+              <div class="flex items-center justify-between">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                  <i data-lucide="calendar" class="w-5 h-5 text-theme-primary"></i>
+                  <span>ปฏิทินกิจกรรมการเรียน (14 วันล่าสุด)</span>
+                </h3>
+                <span class="text-xs text-stone-400">เขตเวลา Asia/Bangkok</span>
+              </div>
+              <div class="grid grid-cols-7 gap-2">
+                ${calendarDays.map(d => {
+                  const bg = d.count === 0
+                    ? 'bg-theme-sub text-stone-400'
+                    : d.count < 5
+                    ? 'bg-emerald-100 text-emerald-900'
+                    : d.count < 15
+                    ? 'bg-emerald-300 text-emerald-950'
+                    : 'bg-theme-primary text-white';
+                  return `
+                    <div class="p-2.5 rounded-2xl flex flex-col items-center justify-center text-center ${bg}">
+                      <span class="text-[10px] opacity-80">${d.label}</span>
+                      <span class="text-sm font-bold mt-0.5">${d.count}</span>
+                      <span class="text-[9px] opacity-75">ครั้ง</span>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+
+            <!-- Urgent Review Queue List -->
+            <div class="bg-white rounded-3xl p-6 border border-theme flex flex-col justify-between space-y-4">
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <h3 class="font-bold text-base">คิวรอทบทวนด่วน</h3>
+                  <span class="px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-800 text-xs font-bold">${m.dueList.length} คำ</span>
+                </div>
+                ${m.dueList.length === 0 ? `
+                  <div class="py-8 text-center space-y-2">
+                    <div class="text-3xl">🍵</div>
+                    <p class="text-xs font-semibold text-stone-600">ไม่มีคำศัพท์ค้างทบทวนในขณะนี้</p>
+                  </div>
+                ` : `
+                  <div class="space-y-2">
+                    ${m.dueList.slice(0, 4).map(item => `
+                      <div class="p-3 rounded-2xl bg-theme-main border border-theme flex items-center justify-between">
+                        <div>
+                          <div class="flex items-center gap-1.5">
+                            <span class="font-bold text-sm font-jp">${escapeHtml(item.word)}</span>
+                            <span class="text-xs text-stone-500">(${escapeHtml(item.kana)})</span>
+                            ${item.urgentReview ? `<span class="px-1.5 py-0.2 bg-red-100 text-red-700 text-[9px] rounded font-bold">เร่งด่วน</span>` : ''}
+                          </div>
+                          <p class="text-xs text-stone-600">${escapeHtml(item.meaning)}</p>
+                        </div>
+                        <button onclick="speakText('${escapeJs(item.word)}')" class="p-2 rounded-xl hover:bg-stone-200 text-stone-600">
+                          <i data-lucide="volume-2" class="w-4 h-4"></i>
+                        </button>
+                      </div>
+                    `).join('')}
+                  </div>
+                `}
+              </div>
+              <button onclick="switchTab('review')" class="w-full py-3 rounded-2xl bg-theme-primary font-bold text-xs">
+                ไปที่หน้า Review Queue →
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function loadStarterDeck20() {
+      const user = getCurrentUser();
+      const existingWords = new Set(db.Vocabulary.filter(v => v.ownerId === user.id).map(v => v.word));
+      let added = 0;
+      const now = Date.now();
+
+      STARTER_DECK_20.forEach((item, idx) => {
+        if (!existingWords.has(item.word)) {
+          const vid = 'voc_' + now + '_' + idx;
+          db.Vocabulary.push({
+            id: vid,
+            ownerId: user.id,
+            language: 'Japanese',
+            word: item.word,
+            kana: item.kana,
+            romaji: item.romaji,
+            meaning: item.meaning,
+            partOfSpeech: item.partOfSpeech,
+            category: item.category,
+            jlpt: item.jlpt,
+            exampleJa: item.exampleJa,
+            exampleTh: item.exampleTh,
+            tokens: item.tokens,
+            createdAt: now
+          });
+          db.UserVocabulary.push({
+            id: 'uv_' + vid,
+            userId: user.id,
+            vocabId: vid,
+            srsStage: 0,
+            nextReview: now,
+            lastReviewed: null,
+            correctCount: 0,
+            wrongCount: 0,
+            consecutiveCorrect: 0,
+            urgentReview: false
+          });
+          added++;
+        }
+      });
+
+      saveDatabase();
+      checkAndUnlockAchievements();
+      showToast(`โหลดชุดคำศัพท์เริ่มต้นสำเร็จ ${added} คำ!`);
+      renderApp();
+    }
+
+    /****************************************************
+     * 8. VIEW 2: VOCABULARY MANAGEMENT (CRUD + CSV)
+     ****************************************************/
+    function renderVocabularyView(container, m) {
+      const filtered = m.vocabList.filter(v => {
+        const q = vocabFilter.search.trim().toLowerCase();
+        const matchQ = !q ||
+          (v.word || '').toLowerCase().includes(q) ||
+          (v.kana || '').toLowerCase().includes(q) ||
+          (v.romaji || '').toLowerCase().includes(q) ||
+          (v.meaning || '').toLowerCase().includes(q);
+        const matchCat = vocabFilter.category === 'ALL' || v.category === vocabFilter.category;
+        const matchJlpt = vocabFilter.jlpt === 'ALL' || v.jlpt === vocabFilter.jlpt;
+        const matchStatus = vocabFilter.status === 'ALL' ||
+          (vocabFilter.status === 'new' && v.srsStage === 0) ||
+          (vocabFilter.status === 'learning' && v.srsStage >= 1 && v.srsStage <= 6) ||
+          (vocabFilter.status === 'mastered' && v.srsStage >= 7);
+        return matchQ && matchCat && matchJlpt && matchStatus;
+      });
+
+      container.innerHTML = `
+        <div class="space-y-6 animate-pop">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-2xl font-bold">คลังคำศัพท์ (${m.totalVocab} คำ)</h2>
+              <p class="text-xs md:text-sm text-stone-600">เพิ่ม แก้ไข ลบ ค้นหา นำเข้าและส่งออกคำศัพท์ CSV พร้อมดูสถานะ SRS รายคำ</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button onclick="openVocabModal()" class="px-4 py-2.5 rounded-2xl bg-theme-primary text-xs font-bold flex items-center gap-1.5">
+                <i data-lucide="plus" class="w-4 h-4"></i> เพิ่มคำศัพท์
+              </button>
+              <button onclick="loadStarterDeck20()" class="px-3.5 py-2.5 rounded-2xl bg-theme-sub border border-theme text-xs font-semibold">
+                + ชุดเริ่มต้น 20 คำ
+              </button>
+              <button onclick="openCSVImportModal()" class="px-3.5 py-2.5 rounded-2xl bg-white border border-theme text-xs font-semibold flex items-center gap-1">
+                <i data-lucide="upload" class="w-3.5 h-3.5"></i> นำเข้า CSV
+              </button>
+              <button onclick="exportVocabularyCSV()" class="px-3.5 py-2.5 rounded-2xl bg-white border border-theme text-xs font-semibold flex items-center gap-1">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i> ส่งออก CSV
+              </button>
+            </div>
+          </div>
+
+          <!-- Filters Bar -->
+          <div class="bg-white p-4 rounded-3xl border border-theme grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
+            <div class="lg:col-span-2">
+              <input
+                type="text"
+                value="${escapeHtml(vocabFilter.search)}"
+                oninput="vocabFilter.search = this.value; renderApp();"
+                placeholder="ค้นหาคันจิ, ฮิรางานะ, โรมาจิ, ความหมายไทย..."
+                class="w-full px-4 py-2.5 rounded-2xl bg-theme-main border border-theme focus:outline-none"
+              />
+            </div>
+            <select onchange="vocabFilter.category = this.value; renderApp();" class="px-3 py-2.5 rounded-2xl bg-theme-main border border-theme">
+              <option value="ALL">ทุกหมวดหมู่</option>
+              ${CATEGORIES.map(c => `<option value="${c}" ${vocabFilter.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+            </select>
+            <select onchange="vocabFilter.jlpt = this.value; renderApp();" class="px-3 py-2.5 rounded-2xl bg-theme-main border border-theme">
+              <option value="ALL">ทุกระดับ JLPT</option>
+              ${JLPT_LEVELS.map(l => `<option value="${l}" ${vocabFilter.jlpt === l ? 'selected' : ''}>JLPT ${l}</option>`).join('')}
+            </select>
+            <select onchange="vocabFilter.status = this.value; renderApp();" class="px-3 py-2.5 rounded-2xl bg-theme-main border border-theme">
+              <option value="ALL">ทุกสถานะความจำ</option>
+              <option value="new" ${vocabFilter.status === 'new' ? 'selected' : ''}>คำใหม่ (Stage 0)</option>
+              <option value="learning" ${vocabFilter.status === 'learning' ? 'selected' : ''}>กำลังเรียน (Stage 1-6)</option>
+              <option value="mastered" ${vocabFilter.status === 'mastered' ? 'selected' : ''}>จำได้ดี (Stage 7-10)</option>
+            </select>
+          </div>
+
+          <!-- Words Grid -->
+          ${filtered.length === 0 ? `
+            <div class="bg-white rounded-3xl p-10 text-center border border-theme space-y-3">
+              <p class="text-sm text-stone-500">ไม่พบคำศัพท์ที่ตรงกับตัวกรอง</p>
+            </div>
+          ` : `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              ${filtered.map(item => {
+                const isDue = item.srsStage > 0 && item.nextReview && item.nextReview <= Date.now();
+                return `
+                  <div class="bg-white rounded-3xl p-5 border border-theme flex flex-col justify-between gap-3">
+                    <div class="space-y-2">
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-1.5 flex-wrap text-[11px]">
+                          <span class="px-2 py-0.5 rounded-lg bg-theme-sub font-bold text-theme-primary">JLPT ${escapeHtml(item.jlpt)}</span>
+                          <span class="px-2 py-0.5 rounded-lg bg-stone-100 text-stone-600">${escapeHtml(item.category)}</span>
+                          <span class="px-2 py-0.5 rounded-lg bg-stone-100 text-stone-500">${escapeHtml(item.partOfSpeech)}</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                          <button onclick="speakText('${escapeJs(item.word)}')" class="p-2 rounded-xl bg-theme-main hover:bg-stone-200 text-theme-primary" title="ฟังเสียง">
+                            <i data-lucide="volume-2" class="w-4 h-4"></i>
+                          </button>
+                          <button onclick="openVocabModal('${item.id}')" class="p-2 rounded-xl hover:bg-stone-100 text-stone-600" title="แก้ไข">
+                            <i data-lucide="edit-3" class="w-4 h-4"></i>
+                          </button>
+                          <button onclick="deleteVocabItem('${item.id}')" class="p-2 rounded-xl hover:bg-red-50 text-red-500" title="ลบ">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div class="flex items-baseline gap-2 flex-wrap">
+                          <h3 class="text-2xl font-bold font-jp">${escapeHtml(item.word)}</h3>
+                          <span class="text-sm font-semibold text-theme-primary font-jp">${escapeHtml(item.kana)}</span>
+                          <span class="text-xs text-stone-400">[${escapeHtml(item.romaji)}]</span>
+                        </div>
+                        <p class="text-base font-bold text-stone-800 mt-0.5">${escapeHtml(item.meaning)}</p>
+                      </div>
+
+                      ${item.exampleJa ? `
+                        <div class="p-3 rounded-2xl bg-theme-main border border-theme text-xs space-y-0.5">
+                          <div class="flex items-center justify-between">
+                            <span class="font-medium font-jp">${escapeHtml(item.exampleJa)}</span>
+                            <button onclick="speakText('${escapeJs(item.exampleJa)}')" class="text-theme-primary">
+                              <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                          </div>
+                          <p class="text-stone-500">${escapeHtml(item.exampleTh)}</p>
+                        </div>
+                      ` : ''}
+                    </div>
+
+                    <div class="pt-2.5 border-t border-stone-100 flex items-center justify-between text-[11px]">
+                      <span class="px-2.5 py-0.5 rounded-full font-semibold ${
+                        item.srsStage >= 7 ? 'bg-emerald-100 text-emerald-800' :
+                        item.srsStage >= 1 ? 'bg-amber-100 text-amber-800' : 'bg-stone-100 text-stone-600'
+                      }">
+                        ${SRS_STAGE_NAMES[item.srsStage || 0]}
+                      </span>
+                      <span class="${isDue ? 'text-theme-accent font-bold' : 'text-stone-400'}">
+                        ${item.srsStage > 0 ? (isDue ? 'ถึงเวลาทบทวนแล้ว!' : `ทบทวน: ${formatBangkokDateTime(item.nextReview)}`) : 'ยังไม่เริ่มเรียน'}
+                      </span>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `}
+        </div>
+      `;
+    }
+
+    function openVocabModal(editId = null) {
+      const existing = editId ? db.Vocabulary.find(v => v.id === editId) : null;
+      const modal = document.getElementById('modal-backdrop');
+      const content = document.getElementById('modal-content');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      content.innerHTML = `
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-bold">${existing ? 'แก้ไขคำศัพท์' : 'เพิ่มคำศัพท์ใหม่'}</h3>
+            <button onclick="closeModal()" class="p-1.5 rounded-xl hover:bg-stone-100">✕</button>
+          </div>
+          <form onsubmit="saveVocabForm(event, '${editId || ''}')" class="space-y-3 text-xs">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block font-bold mb-1">คำศัพท์ญี่ปุ่น (คันจิ/คานะ) *</label>
+                <input id="f-word" required value="${escapeHtml(existing?.word || '')}" placeholder="เช่น 食べる" class="w-full px-3 py-2 rounded-xl border border-theme bg-theme-main" />
+              </div>
+              <div>
+                <label class="block font-bold mb-1">ฮิรางานะ / คาตาคานะ *</label>
+                <input id="f-kana" required value="${escapeHtml(existing?.kana || '')}" placeholder="เช่น たべる" class="w-full px-3 py-2 rounded-xl border border-theme bg-theme-main" />
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block font-bold mb-1">คำอ่านโรมาจิ (Romaji) *</label>
+                <input id="f-romaji" required value="${escapeHtml(existing?.romaji || '')}" placeholder="เช่น taberu" class="w-full px-3 py-2 rounded-xl border border-theme bg-theme-main" />
+              </div>
+              <div>
+                <label class="block font-bold mb-1">ความหมายภาษาไทย *</label>
+                <input id="f-meaning" required value="${escapeHtml(existing?.meaning || '')}" placeholder="เช่น กิน, รับประทาน" class="w-full px-3 py-2 rounded-xl border border-theme bg-theme-main" />
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block font-bold mb-1">ประเภทของคำ</label>
+                <select id="f-pos" class="w-full px-3 py-2 rounded-xl border border-theme bg-theme-main">
+                  ${WORD_TYPES.map(t => `<option value="${t}" ${existing?.partOfSpeech === t ? 'selected' : ''}>${t}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label class="block font-bold mb-1">หมวดหมู่</label>
+                <select id="f-cat" class="w-full px-3 py-2 rounded-xl border border-theme bg-theme-main">
+                  ${CATEGORIES.map(c => `<option value="${c}" ${existing?.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label class="block font-bold mb-1">ระดับความยาก</label>
+                <select id="f-jlpt" class="w-full px-3 py-2 rounded-xl border border-theme bg-theme-main">
+                  ${JLPT_LEVELS.map(l => `<option value="${l}" ${existing?.jlpt === l ? 'selected' : ''}>JLPT ${l}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="block font-bold mb-1">ประโยคตัวอย่างภาษาญี่ปุ่น</label>
+              <input id="f-exja" value="${escapeHtml(existing?.exampleJa || '')}" placeholder="เช่น 毎朝、パンを食べます。" class="w-full px-3 py-2 rounded-xl border border-theme bg-theme-main" />
+            </div>
+            <div>
+              <label class="block font-bold mb-1">คำแปลประโยคภาษาไทย</label>
+              <input id="f-exth" value="${escapeHtml(existing?.exampleTh || '')}" placeholder="เช่น ฉันกินขนมปังทุกเช้า" class="w-full px-3 py-2 rounded-xl border border-theme bg-theme-main" />
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+              <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl border border-stone-300">ยกเลิก</button>
+              <button type="submit" class="px-5 py-2 rounded-xl bg-theme-primary font-bold">บันทึกข้อมูล</button>
+            </div>
+          </form>
+        </div>
+      `;
+    }
+
+    function saveVocabForm(e, editId) {
+      e.preventDefault();
+      const user = getCurrentUser();
+      const word = document.getElementById('f-word').value.trim();
+      const kana = document.getElementById('f-kana').value.trim();
+      const romaji = document.getElementById('f-romaji').value.trim();
+      const meaning = document.getElementById('f-meaning').value.trim();
+      const partOfSpeech = document.getElementById('f-pos').value;
+      const category = document.getElementById('f-cat').value;
+      const jlpt = document.getElementById('f-jlpt').value;
+      const exampleJa = document.getElementById('f-exja').value.trim();
+      const exampleTh = document.getElementById('f-exth').value.trim();
+      const tokens = exampleJa ? (exampleJa.match(/.{1,4}/g) || [exampleJa]) : [word];
+
+      if (editId) {
+        const v = db.Vocabulary.find(item => item.id === editId);
+        if (v && v.ownerId === user.id) {
+          Object.assign(v, { word, kana, romaji, meaning, partOfSpeech, category, jlpt, exampleJa, exampleTh, tokens });
+          showToast('แก้ไขคำศัพท์เรียบร้อยแล้ว');
+        }
+      } else {
+        const vid = 'voc_' + Date.now();
+        db.Vocabulary.push({
+          id: vid,
+          ownerId: user.id,
+          language: 'Japanese',
+          word, kana, romaji, meaning, partOfSpeech, category, jlpt, exampleJa, exampleTh, tokens,
+          createdAt: Date.now()
+        });
+        db.UserVocabulary.push({
+          id: 'uv_' + vid,
+          userId: user.id,
+          vocabId: vid,
+          srsStage: 0,
+          nextReview: Date.now(),
+          lastReviewed: null,
+          correctCount: 0,
+          wrongCount: 0,
+          consecutiveCorrect: 0,
+          urgentReview: false
+        });
+        showToast('เพิ่มคำศัพท์ใหม่สำเร็จ!');
+      }
+
+      saveDatabase();
+      checkAndUnlockAchievements();
+      closeModal();
+      renderApp();
+    }
+
+    function deleteVocabItem(id) {
+      const user = getCurrentUser();
+      db.Vocabulary = db.Vocabulary.filter(v => !(v.id === id && v.ownerId === user.id));
+      db.UserVocabulary = db.UserVocabulary.filter(uv => !(uv.vocabId === id && uv.userId === user.id));
+      saveDatabase();
+      showToast('ลบคำศัพท์ออกจากคลังแล้ว', 'info');
+      renderApp();
+    }
+
+    function exportVocabularyCSV() {
+      const list = getUserJoinedVocabulary();
+      if (!list.length) {
+        showToast('ยังไม่มีคำศัพท์ในคลังสำหรับส่งออก', 'error');
+        return;
+      }
+      const header = 'word,kana,romaji,meaning,partOfSpeech,category,jlpt,exampleJa,exampleTh,srsStage';
+      const rows = list.map(v => [
+        v.word, v.kana, v.romaji, v.meaning, v.partOfSpeech, v.category, v.jlpt, v.exampleJa || '', v.exampleTh || '', v.srsStage || 0
+      ].map(col => `"${String(col).replace(/"/g, '""')}"`).join(','));
+
+      const csv = '\uFEFF' + [header, ...rows].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `vocab_quest_${getBangkokDateStr()}.csv`;
+      a.click();
+      showToast('ส่งออกไฟล์ CSV สำเร็จ');
+    }
+
+    function openCSVImportModal() {
+      const modal = document.getElementById('modal-backdrop');
+      const content = document.getElementById('modal-content');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      content.innerHTML = `
+        <div class="space-y-4 text-xs">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-bold">นำเข้าคำศัพท์จาก CSV</h3>
+            <button onclick="closeModal()" class="p-1.5 rounded-xl hover:bg-stone-100">✕</button>
+          </div>
+          <p class="text-stone-600">รูปแบบคอลัมน์: <code>คำศัพท์,คานะ,โรมาจิ,ความหมายไทย,ประเภทคำ,หมวดหมู่,JLPT,ประโยคญี่ปุ่น,คำแปลไทย</code></p>
+          <textarea id="csv-input-area" rows="6" class="w-full p-3 rounded-2xl border border-theme bg-theme-main font-mono" placeholder="走る,はしる,hashiru,วิ่ง,คำกริยา (Verb),ชีวิตประจำวัน,N5,公園を走ります。,วิ่งที่สวนสาธารณะ"></textarea>
+          <div class="flex justify-end gap-2">
+            <button onclick="closeModal()" class="px-4 py-2 rounded-xl border border-stone-300">ยกเลิก</button>
+            <button onclick="processCSVImport()" class="px-5 py-2 rounded-xl bg-theme-primary font-bold">ตรวจสอบและนำเข้า</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function processCSVImport() {
+      const raw = document.getElementById('csv-input-area').value.trim();
+      if (!raw) {
+        showToast('กรุณาวางข้อมูล CSV ก่อนนำเข้า', 'error');
+        return;
+      }
+      const user = getCurrentUser();
+      const lines = raw.split('\n');
+      let added = 0;
+      let skipped = 0;
+
+      lines.forEach((line, idx) => {
+        const clean = line.trim();
+        if (!clean) return;
+        if (idx === 0 && clean.toLowerCase().includes('word') && clean.toLowerCase().includes('meaning')) return;
+        const cols = clean.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+        if (cols.length >= 4 && cols[0] && cols[3]) {
+          const [word, kana, romaji, meaning, partOfSpeech = 'คำนาม (Noun)', category = 'ชีวิตประจำวัน', jlpt = 'N5', exampleJa = '', exampleTh = ''] = cols;
+          const vid = 'voc_' + Date.now() + '_' + idx;
+          db.Vocabulary.push({
+            id: vid,
+            ownerId: user.id,
+            language: 'Japanese',
+            word, kana: kana || word, romaji: romaji || '', meaning,
+            partOfSpeech, category, jlpt, exampleJa, exampleTh,
+            tokens: exampleJa ? (exampleJa.match(/.{1,4}/g) || [exampleJa]) : [word],
+            createdAt: Date.now()
+          });
+          db.UserVocabulary.push({
+            id: 'uv_' + vid,
+            userId: user.id,
+            vocabId: vid,
+            srsStage: 0,
+            nextReview: Date.now(),
+            lastReviewed: null,
+            correctCount: 0,
+            wrongCount: 0,
+            consecutiveCorrect: 0,
+            urgentReview: false
+          });
+          added++;
+        } else {
+          skipped++;
+        }
+      });
+
+      saveDatabase();
+      closeModal();
+      showToast(`นำเข้าสำเร็จ ${added} คำ ${skipped > 0 ? `(ข้ามข้อมูลไม่ครบ ${skipped} แถว)` : ''}`);
+      renderApp();
+    }
+
+    /****************************************************
+     * 9. VIEW 3: SPACED REPETITION & REVIEW QUEUE
+     ****************************************************/
+    function quickStartSRS(mode) {
+      activeTab = 'review';
+      startSRSSession(mode);
+    }
+
+    function startSRSSession(mode) {
+      const m = calculateMetrics();
+      let pool = [];
+      if (mode === 'due') pool = [...m.dueList];
+      else if (mode === 'new') pool = m.vocabList.filter(v => v.srsStage === 0);
+      else pool = [...m.vocabList];
+
+      if (srsSession.filterCat !== 'ALL') pool = pool.filter(v => v.category === srsSession.filterCat);
+      if (srsSession.filterJLPT !== 'ALL') pool = pool.filter(v => v.jlpt === srsSession.filterJLPT);
+
+      if (!pool.length) {
+        showToast('ไม่มีคำศัพท์ในคิวตามเงื่อนไขที่เลือก', 'info');
+        renderApp();
+        return;
+      }
+
+      const batchSize = m.settings.batchSize || 10;
+      srsSession.active = true;
+      srsSession.mode = mode;
+      srsSession.queue = pool.slice(0, batchSize);
+      srsSession.index = 0;
+      srsSession.revealed = false;
+      srsSession.results = [];
+      renderApp();
+    }
+
+    function gradeSRSCard(rating) {
+      const card = srsSession.queue[srsSession.index];
+      if (!card) return;
+      recordReviewResult(card.id, rating, 'srs_review', 8);
+      srsSession.results.push({ card, rating });
+
+      if (srsSession.index + 1 < srsSession.queue.length) {
+        srsSession.index += 1;
+        srsSession.revealed = false;
+      } else {
+        srsSession.mode = 'summary';
+      }
+      renderApp();
+    }
+
+    function renderReviewView(container, m) {
+      // Session Completed Summary
+      if (srsSession.active && srsSession.mode === 'summary') {
+        const goodCount = srsSession.results.filter(r => r.rating !== 'again').length;
+        container.innerHTML = `
+          <div class="max-w-xl mx-auto bg-white rounded-3xl p-8 border border-theme text-center space-y-6 animate-pop">
+            <div class="text-5xl">🎉</div>
+            <div>
+              <h2 class="text-2xl font-bold">จบรอบการทบทวนสำเร็จ!</h2>
+              <p class="text-sm text-stone-600 mt-1">ทบทวนทั้งหมด ${srsSession.results.length} คำ • จำได้ ${goodCount} คำ</p>
+            </div>
+            <div class="bg-theme-main p-4 rounded-2xl border border-theme text-left space-y-2 max-h-60 overflow-y-auto text-xs">
+              ${srsSession.results.map(r => `
+                <div class="flex items-center justify-between py-1.5 border-b border-stone-200/60 last:border-0">
+                  <div>
+                    <span class="font-bold font-jp mr-2">${escapeHtml(r.card.word)}</span>
+                    <span class="text-stone-600">${escapeHtml(r.card.meaning)}</span>
+                  </div>
+                  <span class="px-2 py-0.5 rounded-full font-bold ${
+                    r.rating === 'again' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'
+                  }">${r.rating.toUpperCase()}</span>
+                </div>
+              `).join('')}
+            </div>
+            <button onclick="srsSession.active = false; renderApp();" class="px-6 py-3 rounded-2xl bg-theme-primary font-bold text-xs">
+              กลับสู่หน้า Review Queue
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      // Active Recall Flashcard Screen
+      if (srsSession.active && srsSession.queue[srsSession.index]) {
+        const card = srsSession.queue[srsSession.index];
+        const showWordFirst = (m.settings.promptMode || 'word') === 'word';
+        const progressPct = Math.round(((srsSession.index + 1) / srsSession.queue.length) * 100);
+
+        container.innerHTML = `
+          <div class="max-w-xl mx-auto space-y-5 animate-pop">
+            <div class="flex items-center justify-between text-xs font-bold">
+              <button onclick="srsSession.active = false; renderApp();" class="text-stone-500 hover:text-stone-800">← ออกจากรอบทบทวน</button>
+              <span class="text-theme-primary">คำที่ ${srsSession.index + 1} / ${srsSession.queue.length}</span>
+            </div>
+            <div class="w-full bg-stone-200 h-2 rounded-full overflow-hidden">
+              <div class="bg-theme-primary h-full transition-all" style="width: ${progressPct}%"></div>
+            </div>
+
+            <div class="bg-white rounded-3xl p-8 border border-theme shadow-sm min-h-[340px] flex flex-col justify-between text-center">
+              <div class="flex items-center justify-between text-xs text-stone-400">
+                <span>${escapeHtml(card.category)} • JLPT ${escapeHtml(card.jlpt)}</span>
+                <span>${SRS_STAGE_NAMES[card.srsStage || 0]}</span>
+              </div>
+
+              <div class="my-6 space-y-3">
+                ${showWordFirst ? `
+                  <h2 class="text-4xl md:text-5xl font-bold font-jp">${escapeHtml(card.word)}</h2>
+                  <button onclick="speakText('${escapeJs(card.word)}')" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-theme-main text-theme-primary text-xs font-bold">
+                    <i data-lucide="volume-2" class="w-4 h-4"></i> ฟังเสียงอ่าน
+                  </button>
+                ` : `
+                  <span class="text-xs text-stone-400">ความหมายภาษาไทย</span>
+                  <h2 class="text-3xl font-bold">${escapeHtml(card.meaning)}</h2>
+                  <p class="text-xs text-stone-500">${escapeHtml(card.partOfSpeech)}</p>
+                `}
+              </div>
+
+              ${!srsSession.revealed ? `
+                <div class="pt-6 border-t border-stone-100 space-y-3">
+                  <p class="text-xs text-stone-400">นึกคำตอบในใจก่อนกดเปิดเฉลย (การเปิดเฉลยยังไม่นับคะแนนจนกว่าจะประเมินผล)</p>
+                  <button onclick="srsSession.revealed = true; renderApp();" class="w-full py-4 rounded-2xl bg-theme-primary font-bold text-sm shadow-xs">
+                    เปิดดูคำตอบ
+                  </button>
+                </div>
+              ` : `
+                <div class="pt-6 border-t border-stone-200 space-y-5 animate-pop">
+                  <div>
+                    <p class="text-lg font-bold text-theme-primary font-jp">${escapeHtml(card.kana)} [${escapeHtml(card.romaji)}]</p>
+                    <p class="text-2xl font-bold text-stone-800 mt-0.5">${escapeHtml(card.meaning)}</p>
+                  </div>
+
+                  ${card.exampleJa ? `
+                    <div class="p-3.5 rounded-2xl bg-theme-main border border-theme text-xs text-left space-y-1">
+                      <div class="flex items-center justify-between">
+                        <span class="font-bold font-jp">${escapeHtml(card.exampleJa)}</span>
+                        <button onclick="speakText('${escapeJs(card.exampleJa)}')" class="text-theme-primary"><i data-lucide="volume-2" class="w-4 h-4"></i></button>
+                      </div>
+                      <p class="text-stone-500">${escapeHtml(card.exampleTh)}</p>
+                    </div>
+                  ` : ''}
+
+                  <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                    <button onclick="gradeSRSCard('again')" class="p-3 rounded-2xl bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 flex flex-col items-center">
+                      <span class="font-bold">จำไม่ได้</span>
+                      <span class="text-[10px] opacity-75">ลดขั้น • 5 นาที</span>
+                    </button>
+                    <button onclick="gradeSRSCard('hard')" class="p-3 rounded-2xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 flex flex-col items-center">
+                      <span class="font-bold">จำได้ยาก</span>
+                      <span class="text-[10px] opacity-75">คงขั้น • เวลาสั้นลง</span>
+                    </button>
+                    <button onclick="gradeSRSCard('good')" class="p-3 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 flex flex-col items-center">
+                      <span class="font-bold">จำได้</span>
+                      <span class="text-[10px] opacity-75">เลื่อนขึ้น +1 ขั้น</span>
+                    </button>
+                    <button onclick="gradeSRSCard('easy')" class="p-3 rounded-2xl bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-800 flex flex-col items-center">
+                      <span class="font-bold">จำได้ง่าย</span>
+                      <span class="text-[10px] opacity-75">ก้าวกระโดด +2 ขั้น</span>
+                    </button>
+                  </div>
+                </div>
+              `}
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // Queue Overview & Settings
+      container.innerHTML = `
+        <div class="space-y-6 animate-pop">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-2xl font-bold">รายการทบทวนอัจฉริยะ (Review Queue)</h2>
+              <p class="text-xs md:text-sm text-stone-600">จัดเรียงคำที่เลยกำหนดทบทวนและคำที่เสี่ยงลืมไว้ลำดับแรกโดยอัตโนมัติ</p>
+            </div>
+            <button onclick="requestBrowserNotification()" class="px-4 py-2.5 rounded-2xl bg-white border border-theme text-xs font-bold flex items-center gap-2 self-start">
+              🔔 ขออนุญาตแจ้งเตือน Push Notification
+            </button>
+          </div>
+
+          <!-- Session Setup Card -->
+          <div class="bg-white rounded-3xl p-6 border border-theme space-y-5">
+            <h3 class="font-bold text-base">ตั้งค่ารอบการเรียน & ตัวกรอง</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-xs">
+              <div>
+                <label class="block font-bold text-stone-500 mb-1">จำนวนคำต่อรอบ</label>
+                <select onchange="updateSettingField('batchSize', Number(this.value))" class="w-full px-3.5 py-2.5 rounded-2xl bg-theme-main border border-theme">
+                  ${[5, 10, 15, 20, 30, 50].map(n => `<option value="${n}" ${m.settings.batchSize === n ? 'selected' : ''}>${n} คำต่อรอบ</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label class="block font-bold text-stone-500 mb-1">รูปแบบคำถาม</label>
+                <select onchange="updateSettingField('promptMode', this.value)" class="w-full px-3.5 py-2.5 rounded-2xl bg-theme-main border border-theme">
+                  <option value="word" ${m.settings.promptMode === 'word' ? 'selected' : ''}>แสดงคำศัพท์ญี่ปุ่นก่อน</option>
+                  <option value="meaning" ${m.settings.promptMode === 'meaning' ? 'selected' : ''}>แสดงความหมายไทยก่อน</option>
+                </select>
+              </div>
+              <div>
+                <label class="block font-bold text-stone-500 mb-1">หมวดหมู่</label>
+                <select onchange="srsSession.filterCat = this.value; renderApp();" class="w-full px-3.5 py-2.5 rounded-2xl bg-theme-main border border-theme">
+                  <option value="ALL">ทุกหมวดหมู่</option>
+                  ${CATEGORIES.map(c => `<option value="${c}" ${srsSession.filterCat === c ? 'selected' : ''}>${c}</option>`).join('')}
+                </select>
+              </div>
+              <div>
+                <label class="block font-bold text-stone-500 mb-1">ระดับความยาก</label>
+                <select onchange="srsSession.filterJLPT = this.value; renderApp();" class="w-full px-3.5 py-2.5 rounded-2xl bg-theme-main border border-theme">
+                  <option value="ALL">ทุกระดับ JLPT</option>
+                  ${JLPT_LEVELS.map(l => `<option value="${l}" ${srsSession.filterJLPT === l ? 'selected' : ''}>JLPT ${l}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap gap-3">
+              <button onclick="startSRSSession('due')" class="px-6 py-3.5 rounded-2xl bg-theme-accent font-bold text-xs md:text-sm">
+                ทบทวนคำถึงกำหนด (${m.dueList.length} คำ)
+              </button>
+              <button onclick="startSRSSession('new')" class="px-6 py-3.5 rounded-2xl bg-theme-primary font-bold text-xs md:text-sm">
+                เรียนคำศัพท์ใหม่ (${m.newCount} คำ)
+              </button>
+              <button onclick="startSRSSession('all')" class="px-5 py-3.5 rounded-2xl bg-theme-sub border border-theme font-bold text-xs md:text-sm">
+                ทบทวนอิสระจากคลังทั้งหมด
+              </button>
+            </div>
+          </div>
+
+          <!-- 10-Stage Breakdown -->
+          <div class="bg-white rounded-3xl p-6 border border-theme space-y-4">
+            <h3 class="font-bold text-base">ตาราง Spaced Repetition 10 ขั้นของคุณ</h3>
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs">
+              ${[1,2,3,4,5,6,7,8,9,10].map(st => {
+                const cnt = m.vocabList.filter(v => v.srsStage === st).length;
+                return `
+                  <div class="p-3 rounded-2xl bg-theme-main border border-theme">
+                    <span class="font-bold text-theme-primary block">${SRS_STAGE_NAMES[st]}</span>
+                    <span class="text-lg font-bold mt-1 block">${cnt} คำ</span>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function updateSettingField(key, val) {
+      const s = getCurrentUserSettings();
+      s[key] = val;
+      saveDatabase();
+      applyCurrentUserTheme();
+      renderApp();
+    }
+
+    async function requestBrowserNotification() {
+      if (!('Notification' in window)) {
+        showToast('เบราว์เซอร์นี้ไม่รองรับระบบ Push Notification', 'error');
+        return;
+      }
+      const perm = await Notification.requestPermission();
+      if (perm === 'granted') {
+        const m = calculateMetrics();
+        updateSettingField('notificationsEnabled', true);
+        new Notification('Vocabulary Memory Quest', {
+          body: `เปิดแจ้งเตือนสำเร็จ! คุณมีคำศัพท์ถึงกำหนดทบทวน ${m.dueList.length} คำ`
+        });
+        showToast('เปิดใช้งานการแจ้งเตือนสำเร็จ!');
+      } else {
+        showToast('ไม่ได้รับอนุญาตให้แจ้งเตือน', 'info');
+      }
+    }
+
+    /****************************************************
+     * 10. VIEW 4: 10 MEMORY GAMES ARENA
+     ****************************************************/
+    function startGame(gameId) {
+      const m = calculateMetrics();
+      if (m.vocabList.length < 4) {
+        showToast('กรุณาเพิ่มคำศัพท์อย่างน้อย 4 คำ (หรือกดโหลดชุดเริ่มต้น 20 คำ) ก่อนเล่นเกม', 'error');
+        return;
+      }
+
+      // Prioritize due & frequently wrong words for Boss Battle
+      let pool = [...m.vocabList];
+      if (gameId === 'boss_battle') {
+        pool.sort((a, b) => ((b.wrongCount || 0) - (a.wrongCount || 0)));
+      } else {
+        pool.sort(() => Math.random() - 0.5);
+      }
+      pool = pool.slice(0, Math.min(8, pool.length));
+
+      gameRuntime = {
+        activeGameId: gameId,
+        summary: null,
+        pool,
+        qIndex: 0,
+        score: 0,
+        mistakes: [],
+        startTime: Date.now(),
+        timerId: null,
+        timeLeft: 60,
+        revealed: false,
+        feedback: null,
+        bossHP: 100,
+        playerHP: 100,
+        builtTokens: [],
+        matchLeft: [],
+        matchRight: [],
+        selectedLeftId: null,
+        matchedIds: [],
+        flipDeck: [],
+        flippedIdx: [],
+        solvedFlipIds: []
+      };
+
+      if (gameId === 'matching') {
+        const sub = pool.slice(0, 6);
+        gameRuntime.matchLeft = [...sub].sort(() => Math.random() - 0.5);
+        gameRuntime.matchRight = [...sub].sort(() => Math.random() - 0.5);
+      } else if (gameId === 'memory_flip') {
+        const sub = pool.slice(0, 4);
+        const deck = [];
+        sub.forEach(w => {
+          deck.push({ uid: w.id + '_ja', vocab: w, label: w.word });
+          deck.push({ uid: w.id + '_th', vocab: w, label: w.meaning });
+        });
+        gameRuntime.flipDeck = deck.sort(() => Math.random() - 0.5);
+      } else if (gameId === 'speed_round') {
+        gameRuntime.timerId = setInterval(() => {
+          gameRuntime.timeLeft -= 1;
+          if (gameRuntime.timeLeft <= 0) {
+            clearInterval(gameRuntime.timerId);
+            gameRuntime.timerId = null;
+            finishActiveGame(false);
+          } else {
+            const timerEl = document.getElementById('speed-timer-badge');
+            if (timerEl) timerEl.textContent = `⏱️ ${gameRuntime.timeLeft}s`;
+          }
+        }, 1000);
+      }
+
+      renderApp();
+      if (gameId === 'listening' && speechState.supported && pool[0]) {
+        speakText(pool[0].word);
+      }
+    }
+
+    function finishActiveGame(bossWon = false) {
+      if (gameRuntime.timerId) {
+        clearInterval(gameRuntime.timerId);
+        gameRuntime.timerId = null;
+      }
+      const user = getCurrentUser();
+      const durationSec = Math.max(1, Math.round((Date.now() - gameRuntime.startTime) / 1000));
+
+      db.GameSessions.push({
+        id: 'gs_' + Date.now(),
+        userId: user.id,
+        gameId: gameRuntime.activeGameId,
+        score: gameRuntime.score,
+        durationSec,
+        mistakesCount: gameRuntime.mistakes.length,
+        timestamp: Date.now(),
+        dateStr: getBangkokDateStr()
+      });
+
+      const xpBonus = Math.max(5, Math.floor(gameRuntime.score / 10));
+      const coinBonus = Math.max(3, Math.floor(gameRuntime.score / 15));
+      user.xp = (user.xp || 0) + xpBonus;
+      user.coins = (user.coins || 0) + coinBonus;
+      if (bossWon) user.bossDefeated = (user.bossDefeated || 0) + 1;
+
+      saveDatabase();
+      checkAndUnlockAchievements();
+
+      gameRuntime.summary = {
+        gameId: gameRuntime.activeGameId,
+        score: gameRuntime.score,
+        durationSec,
+        mistakes: gameRuntime.mistakes,
+        bossWon
+      };
+      renderApp();
+    }
+
+    function submitGameQuestionAnswer(isCorrect) {
+      const currentWord = gameRuntime.pool[gameRuntime.qIndex];
+      if (!currentWord) return;
+
+      if (isCorrect) gameRuntime.score += 20;
+      else gameRuntime.mistakes.push(currentWord);
+
+      recordReviewResult(currentWord.id, isCorrect ? 'good' : 'again', 'game_' + gameRuntime.activeGameId, 5);
+
+      if (gameRuntime.activeGameId === 'boss_battle') {
+        if (isCorrect) gameRuntime.bossHP = Math.max(0, gameRuntime.bossHP - 25);
+        else gameRuntime.playerHP = Math.max(0, gameRuntime.playerHP - 30);
+
+        if (gameRuntime.bossHP <= 0 || gameRuntime.playerHP <= 0) {
+          finishActiveGame(gameRuntime.bossHP <= 0);
+          return;
+        }
+      }
+
+      if (gameRuntime.activeGameId === 'speed_round') {
+        gameRuntime.qIndex = (gameRuntime.qIndex + 1) % gameRuntime.pool.length;
+        renderApp();
+        return;
+      }
+
+      gameRuntime.feedback = {
+        isCorrect,
+        word: currentWord
+      };
+      renderApp();
+    }
+
+    function nextGameQuestion() {
+      gameRuntime.feedback = null;
+      gameRuntime.revealed = false;
+      gameRuntime.builtTokens = [];
+
+      if (gameRuntime.qIndex + 1 < gameRuntime.pool.length) {
+        gameRuntime.qIndex += 1;
+        renderApp();
+        const nextW = gameRuntime.pool[gameRuntime.qIndex];
+        if (gameRuntime.activeGameId === 'listening' && speechState.supported && nextW) {
+          speakText(nextW.word);
+        }
+      } else {
+        finishActiveGame(gameRuntime.activeGameId === 'boss_battle' && gameRuntime.bossHP <= 25);
+      }
+    }
+
+    function handleMatchingPairClick(side, id) {
+      if (side === 'left') {
+        gameRuntime.selectedLeftId = id;
+        renderApp();
+        return;
+      }
+      if (!gameRuntime.selectedLeftId) return;
+      const leftWord = gameRuntime.matchLeft.find(w => w.id === gameRuntime.selectedLeftId);
+      if (gameRuntime.selectedLeftId === id) {
+        gameRuntime.matchedIds.push(id);
+        gameRuntime.score += 20;
+        gameRuntime.selectedLeftId = null;
+        recordReviewResult(id, 'good', 'game_matching', 4);
+        if (gameRuntime.matchedIds.length === gameRuntime.matchLeft.length) {
+          finishActiveGame(false);
+          return;
+        }
+      } else {
+        if (leftWord) {
+          gameRuntime.mistakes.push(leftWord);
+          recordReviewResult(leftWord.id, 'again', 'game_matching', 4);
+        }
+        gameRuntime.selectedLeftId = null;
+        showToast('จับคู่ไม่ตรงกัน ลองใหม่อีกครั้ง!', 'error');
+      }
+      renderApp();
+    }
+
+    function handleMemoryFlipClick(idx) {
+      if (gameRuntime.flippedIdx.length >= 2 || gameRuntime.flippedIdx.includes(idx)) return;
+      const card = gameRuntime.flipDeck[idx];
+      if (!card || gameRuntime.solvedFlipIds.includes(card.vocab.id)) return;
+
+      gameRuntime.flippedIdx.push(idx);
+      renderApp();
+
+      if (gameRuntime.flippedIdx.length === 2) {
+        const c1 = gameRuntime.flipDeck[gameRuntime.flippedIdx[0]];
+        const c2 = gameRuntime.flipDeck[gameRuntime.flippedIdx[1]];
+        if (c1.vocab.id === c2.vocab.id) {
+          gameRuntime.solvedFlipIds.push(c1.vocab.id);
+          gameRuntime.flippedIdx = [];
+          gameRuntime.score += 25;
+          recordReviewResult(c1.vocab.id, 'good', 'game_memory_flip', 5);
+          if (gameRuntime.solvedFlipIds.length === gameRuntime.flipDeck.length / 2) {
+            finishActiveGame(false);
+            return;
+          }
+          renderApp();
+        } else {
+          setTimeout(() => {
+            gameRuntime.flippedIdx = [];
+            renderApp();
+          }, 800);
+        }
+      }
+    }
+
+    function renderGamesView(container, m) {
+      // Post-game summary
+      if (gameRuntime.summary) {
+        const s = gameRuntime.summary;
+        const meta = GAMES_LIST.find(g => g.id === s.gameId);
+        container.innerHTML = `
+          <div class="max-w-xl mx-auto bg-white rounded-3xl p-8 border border-theme text-center space-y-6 animate-pop">
+            <div class="text-5xl">${s.bossWon ? '🏆' : '✨'}</div>
+            <div>
+              <h2 class="text-2xl font-bold">สรุปผลเกม ${escapeHtml(meta?.title || '')}</h2>
+              <p class="text-sm text-stone-600 mt-1">คะแนน: <span class="font-bold text-theme-primary">${s.score}</span> • เวลาที่ใช้: ${s.durationSec} วินาที</p>
+            </div>
+            ${s.mistakes.length > 0 ? `
+              <div class="p-4 rounded-2xl bg-red-50 border border-red-200 text-left text-xs space-y-1.5">
+                <p class="font-bold text-red-800">คำที่ตอบผิดในรอบนี้ (บันทึกปรับเวลาทบทวนแล้ว):</p>
+                ${s.mistakes.map(w => `<p>• <strong>${escapeHtml(w.word)} (${escapeHtml(w.kana)})</strong> = ${escapeHtml(w.meaning)}</p>`).join('')}
+              </div>
+            ` : `<div class="p-4 rounded-2xl bg-emerald-50 text-emerald-800 text-xs font-bold">ยอดเยี่ยม! ไม่ตอบผิดเลยในรอบนี้</div>`}
+            <div class="flex justify-center gap-3">
+              <button onclick="startGame('${s.gameId}')" class="px-6 py-3 rounded-2xl bg-theme-primary font-bold text-xs">เล่นอีกครั้ง</button>
+              <button onclick="gameRuntime.activeGameId = null; gameRuntime.summary = null; renderApp();" class="px-5 py-3 rounded-2xl bg-stone-100 text-stone-700 font-bold text-xs">กลับหน้ารวมเกม</button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // Active Game Runner
+      if (gameRuntime.activeGameId) {
+        const gid = gameRuntime.activeGameId;
+        const meta = GAMES_LIST.find(g => g.id === gid);
+        const currentWord = gameRuntime.pool[gameRuntime.qIndex];
+        const choices = currentWord
+          ? [currentWord, ...m.vocabList.filter(v => v.id !== currentWord.id).sort(() => Math.random() - 0.5).slice(0, 3)].sort(() => Math.random() - 0.5)
+          : [];
+
+        let gameBodyHtml = '';
+
+        if (gid === 'flashcard' && currentWord) {
+          gameBodyHtml = `
+            <div class="text-center space-y-5 py-4">
+              <p class="text-xs text-stone-400">ทายความหมายในใจก่อนเปิดเฉลย</p>
+              <h2 class="text-4xl font-bold font-jp">${escapeHtml(currentWord.word)}</h2>
+              <p class="text-sm text-theme-primary font-jp">${escapeHtml(currentWord.kana)}</p>
+              ${!gameRuntime.revealed ? `
+                <button onclick="gameRuntime.revealed = true; renderApp();" class="px-8 py-3.5 rounded-2xl bg-theme-primary font-bold text-xs">เปิดดูเฉลย</button>
+              ` : `
+                <div class="pt-4 border-t border-stone-100 space-y-4">
+                  <p class="text-2xl font-bold">${escapeHtml(currentWord.meaning)}</p>
+                  <div class="flex justify-center gap-3">
+                    <button onclick="submitGameQuestionAnswer(false)" class="px-5 py-2.5 rounded-xl bg-red-100 text-red-800 font-bold text-xs">จำไม่ได้</button>
+                    <button onclick="submitGameQuestionAnswer(true)" class="px-5 py-2.5 rounded-xl bg-emerald-100 text-emerald-800 font-bold text-xs">จำได้แม่นยำ</button>
+                  </div>
+                </div>
+              `}
+            </div>
+          `;
+        } else if (gid === 'matching') {
+          gameBodyHtml = `
+            <div class="grid grid-cols-2 gap-4 text-xs">
+              <div class="space-y-2">
+                <p class="text-center font-bold text-stone-400">คำศัพท์ญี่ปุ่น</p>
+                ${gameRuntime.matchLeft.map(w => {
+                  const done = gameRuntime.matchedIds.includes(w.id);
+                  const sel = gameRuntime.selectedLeftId === w.id;
+                  return `<button ${done ? 'disabled' : ''} onclick="handleMatchingPairClick('left', '${w.id}')" class="w-full p-3.5 rounded-2xl border font-bold font-jp ${
+                    done ? 'bg-stone-100 text-stone-300' : sel ? 'bg-theme-primary' : 'bg-theme-main border-theme'
+                  }">${escapeHtml(w.word)} (${escapeHtml(w.kana)})</button>`;
+                }).join('')}
+              </div>
+              <div class="space-y-2">
+                <p class="text-center font-bold text-stone-400">ความหมายไทย</p>
+                ${gameRuntime.matchRight.map(w => {
+                  const done = gameRuntime.matchedIds.includes(w.id);
+                  return `<button ${done ? 'disabled' : ''} onclick="handleMatchingPairClick('right', '${w.id}')" class="w-full p-3.5 rounded-2xl border font-semibold ${
+                    done ? 'bg-stone-100 text-stone-300' : 'bg-white border-theme hover:bg-theme-sub'
+                  }">${escapeHtml(w.meaning)}</button>`;
+                }).join('')}
+              </div>
+            </div>
+          `;
+        } else if (gid === 'memory_flip') {
+          gameBodyHtml = `
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              ${gameRuntime.flipDeck.map((c, idx) => {
+                const open = gameRuntime.flippedIdx.includes(idx) || gameRuntime.solvedFlipIds.includes(c.vocab.id);
+                return `<button onclick="handleMemoryFlipClick(${idx})" class="h-24 rounded-2xl border font-bold text-xs p-2 flex items-center justify-center text-center ${
+                  open ? 'bg-theme-main border-stone-400 text-stone-800' : 'bg-theme-primary'
+                }">${open ? escapeHtml(c.label) : '❓'}</button>`;
+              }).join('')}
+            </div>
+          `;
+        } else if ((gid === 'multiple_choice' || gid === 'speed_round') && currentWord && !gameRuntime.feedback) {
+          gameBodyHtml = `
+            <div class="space-y-6 text-center">
+              <div>
+                <h2 class="text-4xl font-bold font-jp">${escapeHtml(currentWord.word)}</h2>
+                <p class="text-xs text-stone-500 mt-1">${escapeHtml(currentWord.kana)} [${escapeHtml(currentWord.romaji)}]</p>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left text-xs">
+                ${choices.map(c => `
+                  <button onclick="submitGameQuestionAnswer(${c.id === currentWord.id})" class="p-4 rounded-2xl bg-theme-main hover:bg-theme-sub border border-theme font-bold">
+                    ${escapeHtml(c.meaning)}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        } else if (gid === 'typing' && currentWord && !gameRuntime.feedback) {
+          gameBodyHtml = `
+            <div class="space-y-4 text-center">
+              <p class="text-xs text-stone-400">พิมพ์คำศัพท์ญี่ปุ่น ฮิรางานะ หรือโรมาจิของคำที่มีความหมายว่า:</p>
+              <h3 class="text-2xl font-bold">${escapeHtml(currentWord.meaning)}</h3>
+              <input id="game-typing-input" type="text" placeholder="พิมพ์คำตอบ เช่น ${escapeHtml(currentWord.romaji)}" class="w-full max-w-md mx-auto px-4 py-3 rounded-2xl border border-theme bg-theme-main text-center text-sm block" />
+              <button onclick="checkTypingGameAnswer()" class="px-8 py-3 rounded-2xl bg-theme-primary font-bold text-xs">ส่งคำตอบ</button>
+            </div>
+          `;
+        } else if (gid === 'listening' && currentWord && !gameRuntime.feedback) {
+          gameBodyHtml = `
+            <div class="space-y-5 text-center">
+              ${!speechState.supported ? `
+                <div class="p-3 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-xs">
+                  ⚠️ อุปกรณ์นี้ไม่รองรับระบบเสียงอ่าน Web Speech API (แสดงคำอ่านสำรอง: <strong>${escapeHtml(currentWord.kana)}</strong>)
+                </div>
+              ` : `
+                <button onclick="speakText('${escapeJs(currentWord.word)}')" class="w-20 h-20 rounded-full bg-theme-primary mx-auto flex items-center justify-center shadow-md">
+                  <i data-lucide="volume-2" class="w-8 h-8"></i>
+                </button>
+                <p class="text-xs text-stone-500">กดปุ่มลำโพงเพื่อฟังเสียงอ่านคำศัพท์</p>
+              `}
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left text-xs">
+                ${choices.map(c => `
+                  <button onclick="submitGameQuestionAnswer(${c.id === currentWord.id})" class="p-4 rounded-2xl bg-theme-main hover:bg-theme-sub border border-theme font-bold">
+                    ${escapeHtml(c.meaning)} (${escapeHtml(c.word)})
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        } else if (gid === 'sentence_builder' && currentWord && !gameRuntime.feedback) {
+          const tokens = currentWord.tokens?.length ? currentWord.tokens : [currentWord.word];
+          gameBodyHtml = `
+            <div class="space-y-4 text-center">
+              <p class="text-xs text-stone-400">เรียงคำให้เป็นประโยคภาษาญี่ปุ่นที่ตรงกับคำแปล:</p>
+              <h3 class="text-base font-bold">"${escapeHtml(currentWord.exampleTh || currentWord.meaning)}"</h3>
+              <div class="min-h-[52px] p-3 rounded-2xl bg-theme-main border-2 border-dashed border-theme flex flex-wrap gap-2 justify-center items-center">
+                ${gameRuntime.builtTokens.map((t, i) => `
+                  <button onclick="gameRuntime.builtTokens.splice(${i}, 1); renderApp();" class="px-3 py-1.5 rounded-xl bg-theme-primary text-xs font-bold font-jp">${escapeHtml(t)}</button>
+                `).join('')}
+              </div>
+              <div class="flex flex-wrap gap-2 justify-center">
+                ${tokens.map(t => `
+                  <button onclick="gameRuntime.builtTokens.push('${escapeJs(t)}'); renderApp();" class="px-3.5 py-2 rounded-xl bg-white border border-theme text-xs font-bold font-jp">${escapeHtml(t)}</button>
+                `).join('')}
+              </div>
+              <div class="flex justify-center gap-2 pt-2">
+                <button onclick="gameRuntime.builtTokens = []; renderApp();" class="px-4 py-2 rounded-xl border border-stone-300 text-xs">ล้างใหม่</button>
+                <button onclick="checkSentenceBuilderAnswer()" class="px-6 py-2 rounded-xl bg-theme-primary font-bold text-xs">ตรวจประโยค</button>
+              </div>
+            </div>
+          `;
+        } else if (gid === 'fill_blank' && currentWord && !gameRuntime.feedback) {
+          const masked = currentWord.exampleJa && currentWord.exampleJa.includes(currentWord.word)
+            ? currentWord.exampleJa.replace(currentWord.word, ' [ ___ ] ')
+            : `[ ___ ] = ${currentWord.meaning}`;
+          gameBodyHtml = `
+            <div class="space-y-5 text-center">
+              <p class="text-xs text-stone-400">เลือกคำศัพท์ที่หายไปในประโยค:</p>
+              <h3 class="text-xl font-bold font-jp">${escapeHtml(masked)}</h3>
+              <p class="text-xs text-stone-500">${escapeHtml(currentWord.exampleTh || currentWord.meaning)}</p>
+              <div class="grid grid-cols-2 gap-3 text-xs">
+                ${choices.map(c => `
+                  <button onclick="submitGameQuestionAnswer(${c.id === currentWord.id})" class="p-3.5 rounded-2xl bg-theme-main hover:bg-theme-sub border border-theme font-bold font-jp">
+                    ${escapeHtml(c.word)} (${escapeHtml(c.kana)})
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        } else if (gid === 'boss_battle' && currentWord && !gameRuntime.feedback) {
+          gameBodyHtml = `
+            <div class="space-y-5">
+              <div class="grid grid-cols-2 gap-4 bg-theme-main p-4 rounded-2xl border border-theme text-xs font-bold">
+                <div>
+                  <div class="flex justify-between mb-1"><span>🛡️ ผู้เรียน</span><span>${gameRuntime.playerHP}%</span></div>
+                  <div class="w-full bg-stone-200 h-2.5 rounded-full overflow-hidden"><div class="bg-emerald-600 h-full" style="width:${gameRuntime.playerHP}%"></div></div>
+                </div>
+                <div>
+                  <div class="flex justify-between mb-1 text-red-700"><span>🐉 บอสแห่งความลืม</span><span>${gameRuntime.bossHP}%</span></div>
+                  <div class="w-full bg-stone-200 h-2.5 rounded-full overflow-hidden"><div class="bg-red-600 h-full" style="width:${gameRuntime.bossHP}%"></div></div>
+                </div>
+              </div>
+              <div class="text-center space-y-1">
+                <h2 class="text-4xl font-bold font-jp">${escapeHtml(currentWord.word)}</h2>
+                <p class="text-xs text-stone-500">${escapeHtml(currentWord.kana)}</p>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                ${choices.map(c => `
+                  <button onclick="submitGameQuestionAnswer(${c.id === currentWord.id})" class="p-4 rounded-2xl bg-theme-main hover:bg-theme-sub border border-theme font-bold text-left">
+                    ⚔️ ${escapeHtml(c.meaning)}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }
+
+        // Feedback explanation overlay
+        if (gameRuntime.feedback) {
+          const fb = gameRuntime.feedback;
+          gameBodyHtml = `
+            <div class="p-5 rounded-2xl border space-y-3 ${fb.isCorrect ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}">
+              <p class="font-bold text-sm ${fb.isCorrect ? 'text-emerald-800' : 'text-red-800'}">
+                ${fb.isCorrect ? '✅ ตอบถูกต้อง! (+20 คะแนน)' : '❌ ตอบผิด! ระบบบันทึกเพื่อทบทวนซ้ำเร็วขึ้น'}
+              </p>
+              <div class="text-xs space-y-1">
+                <p>เฉลย: <strong class="font-jp">${escapeHtml(fb.word.word)} (${escapeHtml(fb.word.kana)})</strong> = ${escapeHtml(fb.word.meaning)}</p>
+                ${fb.word.exampleJa ? `<p>ตัวอย่าง: ${escapeHtml(fb.word.exampleJa)} (${escapeHtml(fb.word.exampleTh)})</p>` : ''}
+              </div>
+              <button onclick="nextGameQuestion()" class="w-full py-2.5 rounded-xl bg-theme-primary font-bold text-xs">ข้อถัดไป →</button>
+            </div>
+          `;
+        }
+
+        container.innerHTML = `
+          <div class="max-w-2xl mx-auto space-y-5 animate-pop">
+            <div class="flex items-center justify-between text-xs font-bold">
+              <button onclick="if(gameRuntime.timerId) clearInterval(gameRuntime.timerId); gameRuntime.activeGameId = null; renderApp();" class="text-stone-500">← ออกจากเกม</button>
+              <div class="flex items-center gap-3">
+                ${gid === 'speed_round' ? `<span id="speed-timer-badge" class="px-3 py-1 rounded-full bg-red-100 text-red-700">⏱️ ${gameRuntime.timeLeft}s</span>` : ''}
+                <span class="text-theme-primary">คะแนน: ${gameRuntime.score}</span>
+              </div>
+            </div>
+            <div class="bg-white rounded-3xl p-6 md:p-8 border border-theme space-y-5">
+              <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+                <h3 class="font-bold text-base">${escapeHtml(meta?.title || '')}</h3>
+                <span class="text-xs text-stone-400">ข้อที่ ${gameRuntime.qIndex + 1} / ${gameRuntime.pool.length}</span>
+              </div>
+              ${gameBodyHtml}
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // 10 Games Catalog Lobby
+      container.innerHTML = `
+        <div class="space-y-6 animate-pop">
+          <div>
+            <h2 class="text-2xl font-bold">เกมฝึกความจำ 10 รูปแบบ (Memory Games Arena)</h2>
+            <p class="text-xs md:text-sm text-stone-600">ทุกเกมดึงคำศัพท์จริงจากคลังของคุณ พร้อมแสดงเฉลยและปรับระดับความจำ SRS ทันที</p>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            ${GAMES_LIST.map(g => `
+              <div class="bg-white rounded-3xl p-5 border border-theme flex flex-col justify-between gap-4">
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="px-2.5 py-1 rounded-full bg-theme-sub text-theme-primary text-xs font-bold">เกมที่ ${g.num}</span>
+                    <i data-lucide="${g.icon}" class="w-5 h-5 text-theme-primary"></i>
+                  </div>
+                  <h3 class="font-bold text-base">${escapeHtml(g.title)}</h3>
+                  <p class="text-xs text-stone-600 leading-relaxed">${escapeHtml(g.desc)}</p>
+                </div>
+                <button onclick="startGame('${g.id}')" class="w-full py-2.5 rounded-2xl font-bold text-xs ${g.id === 'boss_battle' ? 'bg-theme-accent' : 'bg-theme-primary'}">
+                  เข้าเล่นเกม
+                </button>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function checkTypingGameAnswer() {
+      const inp = document.getElementById('game-typing-input');
+      if (!inp) return;
+      const val = inp.value.trim().toLowerCase();
+      const w = gameRuntime.pool[gameRuntime.qIndex];
+      const ok = val === (w.word || '').toLowerCase() ||
+                 val === (w.kana || '').toLowerCase() ||
+                 val === (w.romaji || '').toLowerCase() ||
+                 val === (w.meaning || '').toLowerCase();
+      submitGameQuestionAnswer(ok);
+    }
+
+    function checkSentenceBuilderAnswer() {
+      const w = gameRuntime.pool[gameRuntime.qIndex];
+      const target = (w.exampleJa || w.word).replace(/\s+/g, '');
+      const attempt = gameRuntime.builtTokens.join('').replace(/\s+/g, '');
+      submitGameQuestionAnswer(target === attempt);
+    }
+
+    /****************************************************
+     * 11. VIEW 5: GAMIFICATION, QUESTS & LEARNING MAP
+     ****************************************************/
+    function renderQuestView(container, m) {
+      const todayStr = getBangkokDateStr();
+      const todayGames = m.userGames.filter(g => g.dateStr === todayStr).length;
+
+      const quests = [
+        { title: 'Daily Quest: ทบทวนคำศัพท์วันนี้ครบ 10 ครั้ง', cur: m.todayReviews, max: 10, reward: '20 XP' },
+        { title: 'Daily Quest: เล่นเกมฝึกสมอง 2 รอบในวันนี้', cur: todayGames, max: 2, reward: '15 เหรียญ' },
+        { title: 'Weekly Quest: สะสมคำศัพท์จำได้ดี (Stage 7+) ครบ 5 คำ', cur: m.masteredCount, max: 5, reward: '50 XP' },
+        { title: 'Weekly Boss: เอาชนะบอสในโหมด Boss Battle', cur: m.bossDefeated, max: 1, reward: 'ตราผู้พิชิต' }
+      ];
+
+      const mapStages = [
+        { stage: 1, name: 'หมู่บ้านเริ่มต้น (ฮิรางานะ & คำทักทาย)', req: 0 },
+        { stage: 2, name: 'สถานีรถไฟโตเกียว (การเดินทาง N5)', req: 5 },
+        { stage: 3, name: 'ตรอกอาหารโอซาก้า (คำกริยา & ชีวิตประจำวัน)', req: 12 },
+        { stage: 4, name: 'ย่านธุรกิจชินจูกุ (JLPT N4 & ธุรกิจ)', req: 20 },
+        { stage: 5, name: 'ปราสาทเกียวโต (ปรมาจารย์ความจำระยะยาว)', req: 35 }
+      ];
+
+      container.innerHTML = `
+        <div class="space-y-6 animate-pop">
+          <div class="bg-white rounded-3xl p-6 border border-theme space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-xl font-bold">🗺️ แผนที่การเรียนรู้ (Learning Map)</h2>
+                <p class="text-xs text-stone-500">ปลดล็อกด่านการเรียนรู้ตามจำนวนคำศัพท์ที่สะสมในคลัง</p>
+              </div>
+              <button onclick="switchTab('games'); startGame('boss_battle');" class="px-4 py-2 rounded-xl bg-theme-accent text-xs font-bold">⚔️ ท้าดวลบอสประจำสัปดาห์</button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+              ${mapStages.map(s => {
+                const unlocked = m.totalVocab >= s.req;
+                return `
+                  <div class="p-4 rounded-2xl border ${unlocked ? 'bg-theme-main border-stone-400' : 'bg-stone-100 opacity-60'} space-y-1.5">
+                    <span class="text-xs font-bold text-theme-primary">${unlocked ? '🔓 ปลดล็อกแล้ว' : '🔒 ล็อกอยู่'} • ด่าน ${s.stage}</span>
+                    <h4 class="font-bold text-xs">${s.name}</h4>
+                    <p class="text-[11px] text-stone-500">ต้องการคำศัพท์ ${s.req} คำ</p>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
+          <!-- Quests & Achievements -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white rounded-3xl p-6 border border-theme space-y-3">
+              <h3 class="font-bold text-base">🎯 ภารกิจรายวัน & รายสัปดาห์</h3>
+              ${quests.map(q => {
+                const pct = Math.min(100, Math.round((q.cur / q.max) * 100));
+                return `
+                  <div class="p-3.5 rounded-2xl bg-theme-main border border-theme space-y-1.5 text-xs">
+                    <div class="flex justify-between font-bold">
+                      <span>${q.title}</span>
+                      <span class="text-theme-primary">${q.cur}/${q.max} (${q.reward})</span>
+                    </div>
+                    <div class="w-full bg-stone-200 h-2 rounded-full overflow-hidden">
+                      <div class="bg-theme-primary h-full" style="width:${pct}%"></div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+
+            <div class="bg-white rounded-3xl p-6 border border-theme space-y-3">
+              <h3 class="font-bold text-base">🏅 เหรียญตราความสำเร็จ (Achievements)</h3>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                ${ACHIEVEMENTS_CONFIG.map(a => {
+                  const ok = a.check(m);
+                  return `
+                    <div class="p-3 rounded-2xl border flex items-start gap-2.5 ${ok ? 'bg-emerald-50 border-emerald-300' : 'bg-stone-50 opacity-60'}">
+                      <span class="text-2xl">${a.icon}</span>
+                      <div>
+                        <h4 class="text-xs font-bold">${a.title}</h4>
+                        <p class="text-[10px] text-stone-500">${a.desc}</p>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+
+          <!-- Theme Shop -->
+          <div class="bg-white rounded-3xl p-6 border border-theme space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-base">🎨 ร้านค้าธีมสี Minimal Japanese</h3>
+              <span class="text-xs font-bold text-amber-700">🪙 เหรียญของคุณ: ${m.user.coins || 0}</span>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+              ${Object.values(THEMES).map(t => {
+                const unlocked = (m.settings.unlockedThemes || ['matcha']).includes(t.id);
+                const active = m.settings.theme === t.id;
+                return `
+                  <div class="p-4 rounded-2xl bg-theme-main border border-theme flex flex-col justify-between gap-3">
+                    <div>
+                      <h4 class="font-bold text-sm">${t.name}</h4>
+                      <p class="text-stone-500 mt-0.5">${unlocked ? 'ปลดล็อกแล้ว' : `ราคา ${t.price} เหรียญ`}</p>
+                    </div>
+                    <button onclick="selectOrBuyTheme('${t.id}')" class="w-full py-2 rounded-xl font-bold ${active ? 'bg-stone-200 text-stone-600' : 'bg-theme-primary'}">
+                      ${active ? 'กำลังใช้งาน' : unlocked ? 'ใช้งานธีมนี้' : `แลกด้วย ${t.price} 🪙`}
+                    </button>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function selectOrBuyTheme(themeId) {
+      const user = getCurrentUser();
+      const s = getCurrentUserSettings();
+      const t = THEMES[themeId];
+      if (!t) return;
+
+      if (!s.unlockedThemes.includes(themeId)) {
+        if ((user.coins || 0) < t.price) {
+          showToast('เหรียญของคุณยังไม่พอสำหรับแลกธีมนี้', 'error');
+          return;
+        }
+        user.coins -= t.price;
+        s.unlockedThemes.push(themeId);
+      }
+      s.theme = themeId;
+      saveDatabase();
+      applyCurrentUserTheme();
+      showToast(`เปลี่ยนเป็นธีม ${t.name} สำเร็จ!`);
+      renderApp();
+    }
+
+    /****************************************************
+     * 12. VIEW 6: STATISTICS & DEEP ANALYTICS
+     ****************************************************/
+    function renderStatsView(container, m) {
+      // Category accuracy
+      const catMap = {};
+      m.userReviews.forEach(r => {
+        const c = r.category || 'ทั่วไป';
+        if (!catMap[c]) catMap[c] = { total: 0, correct: 0 };
+        catMap[c].total++;
+        if (r.isCorrect) catMap[c].correct++;
+      });
+
+      const leechWords = [...m.vocabList].filter(v => v.wrongCount > 0).sort((a, b) => b.wrongCount - a.wrongCount).slice(0, 5);
+      const strongWords = [...m.vocabList].filter(v => v.srsStage >= 5 || v.correctCount >= 2).sort((a, b) => b.srsStage - a.srsStage).slice(0, 5);
+
+      const studySec = m.userReviews.reduce((a, r) => a + (r.timeSpentSec || 6), 0) +
+                       m.userGames.reduce((a, g) => a + (g.durationSec || 0), 0);
+      const studyMinutes = Math.max(1, Math.round(studySec / 60));
+
+      container.innerHTML = `
+        <div class="space-y-6 animate-pop">
+          <div>
+            <h2 class="text-2xl font-bold">สถิติและการวิเคราะห์เชิงลึก (Statistics & Analytics)</h2>
+            <p class="text-xs md:text-sm text-stone-600">ประมวลผลจากข้อมูลการทบทวนจริง ประวัติเกม และระดับ SRS รายคำ</p>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+            <div class="bg-white p-4 rounded-2xl border border-theme">
+              <span class="text-xs text-stone-500">ทบทวนสะสมทั้งหมด</span>
+              <p class="text-2xl font-bold mt-1">${m.totalReviews} ครั้ง</p>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-theme">
+              <span class="text-xs text-stone-500">อัตราตอบถูกเฉลี่ย</span>
+              <p class="text-2xl font-bold text-emerald-700 mt-1">${m.accuracy}%</p>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-theme">
+              <span class="text-xs text-stone-500">เวลาเรียนสะสมจริง</span>
+              <p class="text-2xl font-bold text-indigo-700 mt-1">${studyMinutes} นาที</p>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-theme">
+              <span class="text-xs text-stone-500">จำนวนรอบเกมที่เล่น</span>
+              <p class="text-2xl font-bold text-theme-accent mt-1">${m.userGames.length} รอบ</p>
+            </div>
+          </div>
+
+          <!-- SRS Distribution Bars & Category Accuracy -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white p-6 rounded-3xl border border-theme space-y-3">
+              <h3 class="font-bold text-base">การกระจายตัวของคำศัพท์ตามระดับความจำ (SRS 0–10)</h3>
+              <div class="space-y-2 text-xs">
+                ${[0,1,2,3,4,5,6,7,8,9,10].map(st => {
+                  const cnt = m.vocabList.filter(v => v.srsStage === st).length;
+                  const pct = m.totalVocab > 0 ? Math.round((cnt / m.totalVocab) * 100) : 0;
+                  return `
+                    <div class="space-y-1">
+                      <div class="flex justify-between">
+                        <span>${SRS_STAGE_NAMES[st]}</span>
+                        <span class="font-bold">${cnt} คำ (${pct}%)</span>
+                      </div>
+                      <div class="w-full bg-stone-100 h-2 rounded-full overflow-hidden">
+                        <div class="bg-theme-primary h-full" style="width:${pct}%"></div>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-3xl border border-theme space-y-3">
+              <h3 class="font-bold text-base">ความแม่นยำแยกตามหมวดหมู่</h3>
+              <div class="space-y-3 text-xs">
+                ${Object.keys(catMap).length === 0 ? `<p class="text-stone-400 py-8 text-center">ยังไม่มีประวัติการตอบคำถาม</p>` :
+                  Object.entries(catMap).map(([cat, obj]) => {
+                    const pct = Math.round((obj.correct / obj.total) * 100);
+                    return `
+                      <div class="space-y-1">
+                        <div class="flex justify-between font-bold">
+                          <span>${escapeHtml(cat)}</span>
+                          <span>${pct}% (${obj.correct}/${obj.total} ครั้ง)</span>
+                        </div>
+                        <div class="w-full bg-stone-100 h-2.5 rounded-full overflow-hidden">
+                          <div class="bg-theme-accent h-full" style="width:${pct}%"></div>
+                        </div>
+                      </div>
+                    `;
+                  }).join('')
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Leech Words & Mastered Words -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-6 rounded-3xl border border-theme space-y-3">
+              <h3 class="font-bold text-base text-red-700">⚠️ คำศัพท์ที่ตอบผิดบ่อย (ต้องฝึกเพิ่ม)</h3>
+              ${leechWords.length === 0 ? `<p class="text-xs text-stone-400 py-4">ยังไม่มีคำที่ตอบผิด</p>` :
+                leechWords.map(w => `
+                  <div class="p-3 rounded-2xl bg-red-50/60 border border-red-100 flex justify-between text-xs">
+                    <span><strong class="font-jp">${escapeHtml(w.word)} (${escapeHtml(w.kana)})</strong> — ${escapeHtml(w.meaning)}</span>
+                    <span class="font-bold text-red-700">ผิด ${w.wrongCount} ครั้ง</span>
+                  </div>
+                `).join('')
+              }
+            </div>
+
+            <div class="bg-white p-6 rounded-3xl border border-theme space-y-3">
+              <h3 class="font-bold text-base text-theme-primary">🌟 คำศัพท์ที่จำได้ดี</h3>
+              ${strongWords.length === 0 ? `<p class="text-xs text-stone-400 py-4">เริ่มทบทวนคำศัพท์เพื่อสะสมคำที่จำได้ดี</p>` :
+                strongWords.map(w => `
+                  <div class="p-3 rounded-2xl bg-emerald-50/60 border border-emerald-100 flex justify-between text-xs">
+                    <span><strong class="font-jp">${escapeHtml(w.word)} (${escapeHtml(w.kana)})</strong> — ${escapeHtml(w.meaning)}</span>
+                    <span class="font-bold text-emerald-800">ขั้นที่ ${w.srsStage}</span>
+                  </div>
+                `).join('')
+              }
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    /****************************************************
+     * 13. VIEW 7: SETTINGS, MULTI-USER & BACKUP JSON
+     ****************************************************/
+    function renderSettingsView(container, m) {
+      container.innerHTML = `
+        <div class="max-w-2xl mx-auto space-y-6 animate-pop">
+          <div>
+            <h2 class="text-2xl font-bold">ตั้งค่าและจัดการฐานข้อมูล (Settings & Backup)</h2>
+            <p class="text-xs md:text-sm text-stone-600">สลับโปรไฟล์ผู้เรียน ตั้งค่าเป้าหมายรายวัน และสำรองฐานข้อมูลทั้งหมด</p>
+          </div>
+
+          <div class="bg-white rounded-3xl p-6 border border-theme space-y-4 text-xs">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="font-bold text-sm">โปรไฟล์ผู้ใช้งานปัจจุบัน: ${escapeHtml(m.user.username)}</h3>
+                <p class="text-stone-500">รหัสผู้ใช้: <code>${m.user.id}</code> • เขตเวลา: Asia/Bangkok</p>
+              </div>
+              <button onclick="openUserModal()" class="px-4 py-2 rounded-xl bg-theme-primary font-bold">สลับ / เพิ่มผู้ใช้</button>
+            </div>
+
+            <div class="pt-3 border-t border-stone-100">
+              <label class="block font-bold mb-1">เป้าหมายการทบทวนรายวัน (คำ/วัน)</label>
+              <div class="flex gap-2">
+                <input id="inp-daily-goal" type="number" min="5" max="200" value="${m.settings.dailyGoal || 15}" class="px-3.5 py-2 rounded-xl border border-theme bg-theme-main w-32" />
+                <button onclick="updateSettingField('dailyGoal', Number(document.getElementById('inp-daily-goal').value)); showToast('บันทึกเป้าหมายรายวันแล้ว');" class="px-5 py-2 rounded-xl bg-theme-primary font-bold">บันทึก</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-3xl p-6 border border-theme space-y-2 text-xs">
+            <h3 class="font-bold text-sm">สถานะระบบเสียงอ่าน (Web Speech API Diagnostics)</h3>
+            <p>รองรับ SpeechSynthesis: <strong>${speechState.supported ? '✅ พร้อมใช้งาน' : '❌ ไม่รองรับ'}</strong></p>
+            <p>เสียงอ่านภาษาญี่ปุ่น (ja-JP): <strong>${speechState.jaVoice ? `✅ พบเสียง (${speechState.jaVoice.name})` : '⚠️ ใช้เสียงระบบเริ่มต้น'}</strong></p>
+          </div>
+
+          <div class="bg-white rounded-3xl p-6 border border-theme space-y-3 text-xs">
+            <h3 class="font-bold text-sm">ระบบสำรองและกู้คืนฐานข้อมูล (8 ตารางมาตรฐาน)</h3>
+            <p class="text-stone-600">ประกอบด้วยตาราง: Users, Vocabulary, UserVocabulary, ReviewHistory, GameSessions, Achievements, DailyGoals, UserSettings</p>
+            <div class="flex flex-wrap gap-3 pt-1">
+              <button onclick="exportFullDatabaseJSON()" class="px-4 py-2.5 rounded-xl bg-theme-sub border border-theme font-bold flex items-center gap-1.5">
+                <i data-lucide="download" class="w-4 h-4"></i> ส่งออกฐานข้อมูล JSON
+              </button>
+              <label class="px-4 py-2.5 rounded-xl bg-white border border-theme font-bold cursor-pointer flex items-center gap-1.5">
+                <i data-lucide="upload" class="w-4 h-4"></i> นำเข้าไฟล์สำรอง JSON
+                <input type="file" accept=".json" onchange="importFullDatabaseJSON(event)" class="hidden" />
+              </label>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function openUserModal() {
+      const modal = document.getElementById('modal-backdrop');
+      const content = document.getElementById('modal-content');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      content.innerHTML = `
+        <div class="space-y-4 text-xs">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-bold">สลับหรือสร้างโปรไฟล์ผู้เรียน (แยกข้อมูลอิสระ)</h3>
+            <button onclick="closeModal()" class="p-1.5 rounded-xl hover:bg-stone-100">✕</button>
+          </div>
+          <div class="space-y-2 max-h-60 overflow-y-auto">
+            ${db.Users.map(u => `
+              <div class="p-3 rounded-2xl border ${u.id === db.currentUserId ? 'bg-theme-sub border-stone-400' : 'bg-white border-theme'} flex items-center justify-between">
+                <div>
+                  <p class="font-bold text-sm">${escapeHtml(u.username)}</p>
+                  <p class="text-[11px] text-stone-500">XP: ${u.xp || 0} • Streak: ${u.streak || 0} วัน</p>
+                </div>
+                ${u.id === db.currentUserId
+                  ? `<span class="px-2.5 py-1 rounded-lg bg-theme-primary font-bold">กำลังใช้งาน</span>`
+                  : `<button onclick="switchUserAccount('${u.id}')" class="px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 font-bold">เลือกบัญชีนี้</button>`
+                }
+              </div>
+            `).join('')}
+          </div>
+          <form onsubmit="createNewUserAccount(event)" class="pt-3 border-t border-stone-100 flex gap-2">
+            <input id="new-username-inp" required placeholder="ชื่อโปรไฟล์ผู้เรียนใหม่..." class="flex-1 px-3.5 py-2 rounded-xl border border-theme bg-theme-main" />
+            <button type="submit" class="px-4 py-2 rounded-xl bg-theme-primary font-bold">+ สร้างโปรไฟล์</button>
+          </form>
+        </div>
+      `;
+    }
+
+    function switchUserAccount(uid) {
+      db.currentUserId = uid;
+      srsSession.active = false;
+      gameRuntime.activeGameId = null;
+      saveDatabase();
+      applyCurrentUserTheme();
+      closeModal();
+      showToast('สลับโปรไฟล์ผู้เรียนเรียบร้อยแล้ว');
+      renderApp();
+    }
+
+    function createNewUserAccount(e) {
+      e.preventDefault();
+      const name = document.getElementById('new-username-inp').value.trim();
+      if (!name) return;
+      const uid = 'user_' + Date.now();
+      db.Users.push({
+        id: uid,
+        username: name,
+        timezone: 'Asia/Bangkok',
+        xp: 0,
+        coins: 50,
+        streak: 0,
+        lastStudyDate: '',
+        bossDefeated: 0,
+        createdAt: Date.now()
+      });
+      db.UserSettings.push({
+        userId: uid,
+        dailyGoal: 15,
+        batchSize: 10,
+        promptMode: 'word',
+        theme: 'matcha',
+        unlockedThemes: ['matcha'],
+        notificationsEnabled: false
+      });
+      switchUserAccount(uid);
+    }
+
+    function exportFullDatabaseJSON() {
+      const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `vocab_memory_quest_backup_${getBangkokDateStr()}.json`;
+      a.click();
+      showToast('ดาวน์โหลดไฟล์สำรองฐานข้อมูล JSON สำเร็จ');
+    }
+
+    function importFullDatabaseJSON(e) {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const parsed = JSON.parse(ev.target.result);
+          if (parsed && Array.isArray(parsed.Users) && Array.isArray(parsed.Vocabulary)) {
+            db = parsed;
+            saveDatabase();
+            applyCurrentUserTheme();
+            showToast('กู้คืนฐานข้อมูลสำเร็จ!');
+            renderApp();
+          } else {
+            showToast('โครงสร้างไฟล์ JSON ไม่ถูกต้อง', 'error');
+          }
+        } catch (err) {
+          showToast('ไม่สามารถอ่านไฟล์ JSON ได้', 'error');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('modal-backdrop');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    /****************************************************
+     * 14. UTILITIES & INITIALIZATION
+     ****************************************************/
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function escapeJs(str) {
+      return String(str ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initSpeechSystem();
+      loadDatabase();
+      renderApp();
+    });
+  </script>
+</body>
+</html>
